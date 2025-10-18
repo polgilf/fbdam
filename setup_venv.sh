@@ -14,22 +14,14 @@ KERNEL_NAME="fbdam-venv"
 DISPLAY_NAME="Python (fbdam)"
 # ------------------------------------------------------------
 
-if command -v python3 >/dev/null 2>&1; then
-  PYTHON_CMD=(python3)
-elif command -v python >/dev/null 2>&1; then
-  PYTHON_CMD=(python)
-elif command -v py >/dev/null 2>&1; then
-  PYTHON_CMD=(py -3)
-else
-  echo "❌ Python interpreter not found. Please install Python 3.8+ and ensure it is on your PATH."
-  exit 1
-fi
 
 echo "🔧 Creating virtual environment..."
-"${PYTHON_CMD[@]}" -m venv "$VENV_NAME"
+python -m venv "$VENV_NAME"
 
 # Activate venv
-source $VENV_NAME/bin/activate
+# source $VENV_NAME/bin/activate
+
+$VENV_NAME\Scripts\Activate.ps1
 
 echo "✅ Virtual environment activated: $VENV_NAME"
 

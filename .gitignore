@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+.env/
+reports/
+dist/
+build/
+# .gitignore additions
+*.egg-info/
+__pycache__/
+.venv/
+reports/
+.pytest_cache/
+.idea/
