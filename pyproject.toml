@@ -1,0 +1,55 @@
+# pyproject.toml
+# FBDAM — Minimal optimization system packaging
+# ---------------------------------------------------------
+# - Define el paquete (src layout) y metadatos del proyecto
+# - Declara dependencias base (Pyomo, Pydantic, Typer, etc.)
+# - Expone una CLI: `fbdam` → fbdam.engine.run:app (Typer)
+# - Incluye YAMLs de catálogos/esquemas como package data
+# - Ofrece extras opcionales para el solver HiGHS:
+#     * appsi_highs  → Pyomo[appsi] + highspy
+#     * highs        → interfaz clásica (ejecutable en PATH)
+# ---------------------------------------------------------
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fbdam"
+version = "0.1.0"
+description = "Food Basket Design and Allocation Model — minimal optimization system."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Pol Gil Figuerola" }]
+license = { text = "MIT" }
+
+dependencies = [
+  "pyomo>=6.9.5",
+  "pydantic>=2.12.3",
+  "pandas>=2.3.3",
+  "numpy>=2.3.4",
+  "pyyaml>=6.0.3",
+  "rich>=14.2.0",
+  "typer>=0.19.2"
+]
+
+[project.optional-dependencies]
+appsi_highs = ["highspy>=1.11.0"]
+highs = ["pyomo>=6.9.5"]
+
+[project.scripts]
+fbdam = "fbdam.engine.run:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"fbdam" = ["config/**/*.yaml"]
+
+# (Opcional) estilo/calidad
+[tool.ruff]
+line-length = 100
+
+# (Opcional) tests
+[tool.pytest.ini_options]
+testpaths = ["tests"]
