@@ -14,8 +14,19 @@ KERNEL_NAME="fbdam-venv"
 DISPLAY_NAME="Python (fbdam)"
 # ------------------------------------------------------------
 
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_CMD=(python3)
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_CMD=(python)
+elif command -v py >/dev/null 2>&1; then
+  PYTHON_CMD=(py -3)
+else
+  echo "❌ Python interpreter not found. Please install Python 3.8+ and ensure it is on your PATH."
+  exit 1
+fi
+
 echo "🔧 Creating virtual environment..."
-python -m venv $VENV_NAME
+"${PYTHON_CMD[@]}" -m venv "$VENV_NAME"
 
 # Activate venv
 source $VENV_NAME/bin/activate
@@ -30,4 +41,4 @@ echo "📚 Installing project (editable) and extras..."
 pip install -e .[appsi_highs] jupyter ipykernel
 
 echo "🧠 Registering Jupyter kernel..."
-python -m ipykernel install --user --name="$KERNEL_NAME" --display-name="$DISPLAY_NAME"
+"${PYTHON_CMD[@]}" -m ipykernel install --user --name="$KERNEL_NAME" --display-name="$DISPLAY_NAME"
