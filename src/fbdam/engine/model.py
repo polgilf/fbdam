@@ -25,7 +25,7 @@ This builder does NOT read files. All I/O/validation should happen in io.py.
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, Mapping
+from typing import Any, Dict, Iterable, Mapping, Sequence, Tuple
 import pyomo.environ as pyo
 
 from fbdam.engine.domain import (
@@ -52,17 +52,20 @@ def build_model(cfg: dict) -> pyo.ConcreteModel:
     Expected cfg shape (minimal):
       cfg = {
         "domain": DomainIndex(...),
+        "model_params": {...},
         "model": {
           "constraints": [{"type": "u_link", "params": {...}}, ...],
           "objectives":  [{"name": "sum_utility", "sense": "maximize", "params": {...}}]
         }
       }
 
+    The function also accepts the ``ScenarioConfig`` dataclass returned by
+    :func:`fbdam.engine.io.load_scenario` and will extract the same pieces.
+
     Returns:
         Pyomo ConcreteModel, fully assembled (but not solved).
     """
-    domain: DomainIndex = cfg["domain"]
-    spec: dict = cfg["model"]
+    domain, constraint_specs, objective_specs, model_params = _unpack_config(cfg)
     m = pyo.ConcreteModel(name="FBDAM")
 
     _build_sets(m, domain)
@@ -70,10 +73,42 @@ def build_model(cfg: dict) -> pyo.ConcreteModel:
     _build_variables(m, domain)
     _build_expressions(m)
 
-    _apply_constraint_plugins(m, spec.get("constraints", []))
-    _apply_objective_plugin(m, spec.get("objectives", []))
+    _apply_constraint_plugins(m, constraint_specs)
+    _apply_objective_plugin(m, objective_specs)
+
+    # Store raw parameters for plugin access (non-Pyomo metadata)
+    m.model_params = model_params
 
     return m
+
+
+def _unpack_config(cfg: object) -> Tuple[DomainIndex, Sequence[dict], Sequence[dict], Dict[str, Any]]:
+    """Normalize configuration input for the builder.
+
+    Supports both the historical dict-based API and the newer ``ScenarioConfig``
+    dataclass returned by :func:`fbdam.engine.io.load_scenario`.
+    """
+
+    if hasattr(cfg, "domain") and hasattr(cfg, "constraints"):
+        domain = getattr(cfg, "domain")
+        constraints = [
+            {"type": c.type, "params": c.params}
+            for c in getattr(cfg, "constraints", [])
+        ]
+        objectives = [
+            {"name": o.name, "sense": o.sense, "params": o.params}
+            for o in getattr(cfg, "objectives", [])
+        ]
+        model_params = getattr(cfg, "model_params", {})
+        return domain, constraints, objectives, model_params
+
+    # Fallback to dict-style configuration
+    spec = cfg.get("model", {}) if isinstance(cfg, Mapping) else {}
+    domain = cfg["domain"] if isinstance(cfg, Mapping) else getattr(cfg, "domain")
+    constraints = spec.get("constraints", [])
+    objectives = spec.get("objectives", [])
+    model_params = cfg.get("model_params", {}) if isinstance(cfg, Mapping) else {}
+    return domain, constraints, objectives, model_params
 
 
 # ------------------------------------------------------------
@@ -93,7 +128,7 @@ def _build_sets(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
 
 
 def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
-    """Create parameters: stock S[i], nutrient content C[i,n], requirements R[h,n], gamma[h]."""
+    """Create parameters: stock S[i], nutrient content C[i,n], requirements R[h,n], fairshare weights."""
 
     items: Mapping[str, Item] = domain.items
     nutrients: Mapping[str, Nutrient] = domain.nutrients
@@ -106,10 +141,16 @@ def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
         return float(items[i].stock)
     m.S = pyo.Param(m.I, initialize=_S_init, within=pyo.NonNegativeReals, doc="Stock per item")
 
-    # Household weight gamma[h] (>= 0)
-    def _gamma_init(model, h):
-        return float(households[h].gamma)
-    m.gamma = pyo.Param(m.H, initialize=_gamma_init, within=pyo.NonNegativeReals, doc="Household weight")
+    # Household fair-share weight w[h] (>= 0)
+    def _fairshare_weight_init(model, h):
+        return float(households[h].fairshare_weight)
+
+    m.fairshare_weight = pyo.Param(
+        m.H,
+        initialize=_fairshare_weight_init,
+        within=pyo.NonNegativeReals,
+        doc="Household fair-share weight",
+    )
 
     # Nutrient content C[i,n] (>= 0), default 0 if (i,n) pair not present
     def _C_init(model, i, n):

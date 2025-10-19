@@ -25,6 +25,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
 
+from fbdam.engine.data_loader import DataLoaderError, load_domain_and_params
+from fbdam.engine.domain import DomainIndex
+
 
 # ----------------------------- Exceptions ------------------------------------
 
@@ -67,6 +70,8 @@ class ScenarioConfig:
     Note: dataset paths are normalized (absolute) and verified to exist.
     """
     data_paths: Dict[str, Path]
+    domain: DomainIndex
+    model_params: Dict[str, Any]
     constraints: List[MaterializedConstraint]
     objectives: List[MaterializedObjective]
     solver: SolverConfig
@@ -123,6 +128,15 @@ def load_scenario(scenario_path: Path) -> ScenarioConfig:
         context=f"{scenario_path.name}::solver",
     )
 
+    # Domain datasets + model parameters
+    try:
+        bundle = load_domain_and_params(
+            data_paths=data_paths,
+            model_section=scenario.get("model", {}),
+        )
+    except DataLoaderError as exc:
+        raise IOConfigError(str(exc)) from exc
+
     # Return a frozen, builder-ready configuration
     normalized_raw = {
         "version": scenario.get("version"),
@@ -133,10 +147,13 @@ def load_scenario(scenario_path: Path) -> ScenarioConfig:
             "objectives": [o.__dict__ for o in mat_objectives],
         },
         "solver": {"name": solver_cfg.name, "options": solver_cfg.options},
+        "model_params": bundle.model_params,
     }
 
     return ScenarioConfig(
         data_paths=data_paths,
+        domain=bundle.domain,
+        model_params=bundle.model_params,
         constraints=mat_constraints,
         objectives=mat_objectives,
         solver=solver_cfg,

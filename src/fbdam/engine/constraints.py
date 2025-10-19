@@ -117,7 +117,7 @@ def add_fairshare_cap_house(m: pyo.ConcreteModel, params: dict) -> None:
     -----------------------------------------------
     Limits deviations from proportional allocation (L1-based fairness).
 
-    Σ_i |x[i,h] - α·γ[h]| ≤ β·γ[h]·Σ_i S[i]
+    Σ_i |x[i,h] - α·w[h]| ≤ β·w[h]·Σ_i S[i]
 
     Params (dict):
         alpha: float — proportional share coefficient (0–1)
@@ -125,7 +125,7 @@ def add_fairshare_cap_house(m: pyo.ConcreteModel, params: dict) -> None:
     alpha = float(params.get("alpha", 0.7))
 
     def rule(m, h):
-        return sum(m.dpos[i, h] + m.dneg[i, h] for i in m.I) <= alpha * m.gamma[h] * sum(
+        return sum(m.dpos[i, h] + m.dneg[i, h] for i in m.I) <= alpha * m.fairshare_weight[h] * sum(
             m.S[i] for i in m.I
         )
 
