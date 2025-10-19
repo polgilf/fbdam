@@ -22,7 +22,8 @@ Example builder usage:
 """
 
 from __future__ import annotations
-from typing import Callable, Dict, Literal, Optional
+from collections.abc import Mapping
+from typing import Callable, Dict, Optional
 import pyomo.environ as pyo
 
 # ---------------------------------------------------------------------
@@ -73,6 +74,14 @@ def _sense_to_pyomo(sense: Optional[str]) -> object:
     raise ValueError(f"Invalid sense '{sense}'. Use 'maximize' or 'minimize'.")
 
 
+def _get_lambda_value(model_params: Mapping[str, object] | None) -> float | None:
+    params = model_params or {}
+    for key in ("lambda", "lambda_", "lam"):
+        if key in params:
+            return float(params[key])
+    return None
+
+
 # ---------------------------------------------------------------------
 # Objective implementations
 # ---------------------------------------------------------------------
@@ -98,7 +107,17 @@ def obj_sum_utility(m: pyo.ConcreteModel, params: dict, sense: Optional[str] = "
     weight = float(params.get("weight", 1.0))
     pyomo_sense = _sense_to_pyomo(sense)
 
-    expr = weight * sum(m.u[n, h] for n in m.N for h in m.H)
+    if hasattr(m, "total_utility"):
+        utility_expr = m.total_utility
+    else:
+        utility_expr = sum(m.u[n, h] for n in m.N for h in m.H)
+
+    expr = weight * utility_expr
+
+    lambda_value = _get_lambda_value(getattr(m, "model_params", None))
+    if lambda_value and hasattr(m, "epsilon"):
+        expr = expr - lambda_value * m.epsilon
+
     # Use a stable component name (overwrite if re-called by design).
     m.OBJ = pyo.Objective(expr=expr, sense=pyomo_sense)
 

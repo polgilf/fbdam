@@ -73,11 +73,11 @@ def build_model(cfg: dict) -> pyo.ConcreteModel:
     _build_variables(m, domain)
     _build_expressions(m)
 
+    # Expose raw (non-Pyomo) parameters so plugins can read dials/budget/etc.
+    m.model_params = model_params or {}
+
     _apply_constraint_plugins(m, constraint_specs)
     _apply_objective_plugin(m, objective_specs)
-
-    # Store raw parameters for plugin access (non-Pyomo metadata)
-    m.model_params = model_params
 
     return m
 
@@ -141,6 +141,17 @@ def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
         return float(items[i].stock)
     m.S = pyo.Param(m.I, initialize=_S_init, within=pyo.NonNegativeReals, doc="Stock per item")
 
+    # Optional purchase cost per item (>= 0)
+    def _cost_init(model, i):
+        return float(items[i].cost)
+
+    m.cost = pyo.Param(
+        m.I,
+        initialize=_cost_init,
+        within=pyo.NonNegativeReals,
+        doc="Purchase cost per additional unit of item",
+    )
+
     # Household fair-share weight w[h] (>= 0)
     def _fairshare_weight_init(model, h):
         return float(households[h].fairshare_weight)
@@ -188,9 +199,15 @@ def _build_variables(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
     # Utility u[n,h] in [0,1]
     m.u = pyo.Var(m.N, m.H, bounds=(0.0, 1.0), doc="Nutrient-household utility (normalized)")
 
+    # Purchases y[i] >= 0 (augment donated stock)
+    m.y = pyo.Var(m.I, domain=pyo.NonNegativeReals, doc="Purchased quantity of item i")
+
     # Optional deviation variables used by fairness constraints (kept generic)
     m.dpos = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Positive deviation helper")
     m.dneg = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Negative deviation helper")
+
+    # Global slack epsilon >= 0 (used by soft floors when enabled)
+    m.epsilon = pyo.Var(domain=pyo.NonNegativeReals, doc="Global feasibility slack")
 
 
 def _build_expressions(m: pyo.ConcreteModel) -> None:
@@ -201,15 +218,54 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
         return sum(model.C[i, n] * model.x[i, h] for i in model.I)
     m.q = pyo.Expression(m.N, m.H, rule=_q_expr)
 
+    # Available supply per item: Avail_i := S_i + y_i
+    def _avail_expr(model, i):
+        return model.S[i] + model.y[i]
+
+    m.Avail = pyo.Expression(m.I, rule=_avail_expr, doc="Available units of item i (stock + purchase)")
+
+    # Total available supply: TotSupply := sum_i (S_i + y_i)
+    def _total_supply_expr(model):
+        return sum(model.Avail[i] for i in model.I)
+
+    m.TotSupply = pyo.Expression(rule=_total_supply_expr, doc="Total available supply across all items")
+
+    # Total allocation per household: X_h := sum_i x[i,h]
+    def _household_total_expr(model, h):
+        return sum(model.x[i, h] for i in model.I)
+
+    m.X = pyo.Expression(m.H, rule=_household_total_expr, doc="Total allocation delivered to household h")
+
+    # Total nutritional utility: sum_{n,h} u[n,h]
+    def _total_utility_expr(model):
+        return sum(model.u[n, h] for n in model.N for h in model.H)
+
+    m.total_utility = pyo.Expression(rule=_total_utility_expr, doc="Aggregate nutritional utility")
+
     # Household mean utility: mean over nutrients
     def _mean_u(model, h):
         return (1.0 / model.cardN) * sum(model.u[n, h] for n in model.N)
-    m.mean_utility = pyo.Expression(m.H, rule=_mean_u)
+    if len(m.N) == 0:
+        m.mean_utility = pyo.Expression(m.H, initialize=0.0)
+    else:
+        m.mean_utility = pyo.Expression(m.H, rule=_mean_u)
+
+    # Nutrient mean utility: mean over households
+    def _mean_u_nutrient(model, n):
+        return (1.0 / model.cardH) * sum(model.u[n, h] for h in model.H)
+
+    if len(m.H) == 0:
+        m.mean_utility_nutrient = pyo.Expression(m.N, initialize=0.0)
+    else:
+        m.mean_utility_nutrient = pyo.Expression(m.N, rule=_mean_u_nutrient)
 
     # Global mean utility: mean over households of household mean utility
     def _global_mean(model):
-        return (1.0 / model.cardH) * sum(model.mean_utility[h] for h in model.H)
-    m.global_mean_utility = pyo.Expression(rule=_global_mean)
+        if len(model.N) == 0 or len(model.H) == 0:
+            return 0.0
+        return model.total_utility / (model.cardN * model.cardH)
+
+    m.global_mean_utility = pyo.Expression(rule=_global_mean, doc="Global mean utility across all nutrient-household pairs")
 
 
 # ------------------------------------------------------------
