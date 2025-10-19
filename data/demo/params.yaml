@@ -1,0 +1,25 @@
+# Baseline parameters for the demo scenario.
+# These values intentionally keep all dial-driven constraints non-binding
+# so the focus is on maximizing total nutrient utility (TNU).
+version: v1.0
+notes: |
+  Default dial configuration for demo scenarios that should behave like a
+  relaxed baseline. The large cap coefficients effectively disable fairness
+  limits while zero floors keep minimum thresholds inactive.
+budget: null
+lambda: 0.0
+lambda_penalty: 0.0
+
+dials:
+  alpha:
+    default: 9999.0
+  beta:
+    default: 9999.0
+  rho:
+    default: 9999.0
+  gamma:
+    default: 0.0
+  kappa:
+    default: 0.0
+  omega:
+    default: 0.0

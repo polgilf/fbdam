@@ -1,0 +1,29 @@
+version: v1.0
+name: Demo — maximize TNU baseline
+status: demo
+
+# Paths relative to this scenario file.
+data:
+  items_csv: ../data/demo/items.csv
+  nutrients_csv: ../data/demo/nutrients.csv
+  households_csv: ../data/demo/households.csv
+  requirements_csv: ../data/demo/requirements.csv
+  item_nutrients_csv: ../data/demo/item_nutrients.csv
+  household_item_bounds_csv: ../data/demo/household_item_bounds.csv
+  params_yaml: ../data/demo/params.yaml
+
+model:
+  description: |
+    Minimal end-to-end demo that loads the bundled CSVs and the relaxed
+    dial configuration from params.yaml. The model maximizes total nutrient
+    utility (TNU) without a monetary budget or fairness caps.
+  constraints:
+    - ref: util_link
+    - ref: stock_balance
+  objectives:
+    - ref: sum_utility
+
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 10
