@@ -1,0 +1,219 @@
+"""
+model.py — Model builder
+------------------------
+Constructs the Pyomo model from validated configuration and domain data.
+
+Inputs expected:
+- domain: fbdam.engine.domain.DomainIndex      (immutable, typed container)
+- model_spec: dict-like with:
+    {
+      "constraints": [{"type": "<name>", "params": {...}}, ...],
+      "objectives":  [{"name": "<name>", "sense": "maximize", "params": {...}}]
+    }
+
+Notes:
+- Requirements: the former DRI are now Requirements. We expose R[h,n].
+- We protect against division-by-zero by flooring R[h,n] with a small epsilon.
+- Nutrient delivery q[n,h] is an Expression from x[i,h] and item nutrient content.
+- Utility u[n,h] is a variable bounded in [0, 1]; keep it clean and let constraints
+  (e.g., u_link) define the linkage.
+- We predefine deviation variables (dpos/dneg) frequently used by fairness caps.
+- 'household_floor' plugins expect mean and global mean utility expressions.
+
+This builder does NOT read files. All I/O/validation should happen in io.py.
+"""
+
+from __future__ import annotations
+
+from typing import Dict, Iterable, Mapping
+import pyomo.environ as pyo
+
+from fbdam.engine.domain import (
+    DomainIndex,
+    Item,
+    Nutrient,
+    Household,
+    Requirement,
+    ItemNutrient,
+    AllocationBounds,
+)
+from fbdam.engine.constraints import get_constraint
+from fbdam.engine.objectives import get_objective
+
+
+# ------------------------------------------------------------
+# Public API
+# ------------------------------------------------------------
+
+def build_model(cfg: dict) -> pyo.ConcreteModel:
+    """
+    Build a Pyomo model from a validated configuration dictionary.
+
+    Expected cfg shape (minimal):
+      cfg = {
+        "domain": DomainIndex(...),
+        "model": {
+          "constraints": [{"type": "u_link", "params": {...}}, ...],
+          "objectives":  [{"name": "sum_utility", "sense": "maximize", "params": {...}}]
+        }
+      }
+
+    Returns:
+        Pyomo ConcreteModel, fully assembled (but not solved).
+    """
+    domain: DomainIndex = cfg["domain"]
+    spec: dict = cfg["model"]
+    m = pyo.ConcreteModel(name="FBDAM")
+
+    _build_sets(m, domain)
+    _build_params(m, domain)
+    _build_variables(m, domain)
+    _build_expressions(m)
+
+    _apply_constraint_plugins(m, spec.get("constraints", []))
+    _apply_objective_plugin(m, spec.get("objectives", []))
+
+    return m
+
+
+# ------------------------------------------------------------
+# Internal builders: sets, params, vars, exprs
+# ------------------------------------------------------------
+
+def _build_sets(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
+    """Create fundamental index sets."""
+    m.I = pyo.Set(initialize=list(domain.items.keys()), ordered=False, doc="Items")
+    m.N = pyo.Set(initialize=list(domain.nutrients.keys()), ordered=False, doc="Nutrients")
+    m.H = pyo.Set(initialize=list(domain.households.keys()), ordered=False, doc="Households")
+
+    # Convenience sizes (as numeric Params)
+    m.cardI = pyo.Param(initialize=len(m.I), mutable=False)
+    m.cardN = pyo.Param(initialize=len(m.N), mutable=False)
+    m.cardH = pyo.Param(initialize=len(m.H), mutable=False)
+
+
+def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
+    """Create parameters: stock S[i], nutrient content C[i,n], requirements R[h,n], gamma[h]."""
+
+    items: Mapping[str, Item] = domain.items
+    nutrients: Mapping[str, Nutrient] = domain.nutrients
+    households: Mapping[str, Household] = domain.households
+    item_nutrients: Mapping[tuple, ItemNutrient] = domain.item_nutrients
+    requirements: Mapping[tuple, Requirement] = domain.requirements
+
+    # Stock per item (>= 0)
+    def _S_init(model, i):
+        return float(items[i].stock)
+    m.S = pyo.Param(m.I, initialize=_S_init, within=pyo.NonNegativeReals, doc="Stock per item")
+
+    # Household weight gamma[h] (>= 0)
+    def _gamma_init(model, h):
+        return float(households[h].gamma)
+    m.gamma = pyo.Param(m.H, initialize=_gamma_init, within=pyo.NonNegativeReals, doc="Household weight")
+
+    # Nutrient content C[i,n] (>= 0), default 0 if (i,n) pair not present
+    def _C_init(model, i, n):
+        return float(item_nutrients.get((i, n), ItemNutrient(i, n, 0.0)).qty_per_unit)
+    m.C = pyo.Param(m.I, m.N, initialize=_C_init, within=pyo.NonNegativeReals, doc="Nutrient content per item-unit")
+
+    # Requirements R[h,n] (>= 0), protect against division by zero with epsilon floor
+    EPS_R = 1e-9
+
+    def _R_init(model, h, n):
+        amt = float(requirements.get((h, n), Requirement(h, n, 0.0)).amount)
+        return max(amt, EPS_R)
+
+    m.R = pyo.Param(
+        m.H, m.N, initialize=_R_init, within=pyo.NonNegativeReals, doc="Requirement amount (floored at eps)"
+    )
+
+
+def _build_variables(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
+    """Create decision variables and common auxiliaries."""
+
+    bounds: Mapping[tuple, AllocationBounds] = domain.bounds
+
+    # Item-household allocation x[i,h] with per-(i,h) bounds if provided
+    def _x_bounds(model, i, h):
+        b = bounds.get((i, h))
+        if b is None:
+            return (0.0, None)
+        lb = float(b.lower)
+        ub = None if b.upper is None else float(b.upper)
+        return (lb, ub)
+
+    m.x = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, bounds=_x_bounds, doc="Allocation of item i to household h")
+
+    # Utility u[n,h] in [0,1]
+    m.u = pyo.Var(m.N, m.H, bounds=(0.0, 1.0), doc="Nutrient-household utility (normalized)")
+
+    # Optional deviation variables used by fairness constraints (kept generic)
+    m.dpos = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Positive deviation helper")
+    m.dneg = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Negative deviation helper")
+
+
+def _build_expressions(m: pyo.ConcreteModel) -> None:
+    """Create common expressions used by multiple plugins (q, means, etc.)."""
+
+    # Delivered nutrient quantity q[n,h] := sum_i C[i,n] * x[i,h]
+    def _q_expr(model, n, h):
+        return sum(model.C[i, n] * model.x[i, h] for i in model.I)
+    m.q = pyo.Expression(m.N, m.H, rule=_q_expr)
+
+    # Household mean utility: mean over nutrients
+    def _mean_u(model, h):
+        return (1.0 / model.cardN) * sum(model.u[n, h] for n in model.N)
+    m.mean_utility = pyo.Expression(m.H, rule=_mean_u)
+
+    # Global mean utility: mean over households of household mean utility
+    def _global_mean(model):
+        return (1.0 / model.cardH) * sum(model.mean_utility[h] for h in model.H)
+    m.global_mean_utility = pyo.Expression(rule=_global_mean)
+
+
+# ------------------------------------------------------------
+# Apply plugins (constraints & objective)
+# ------------------------------------------------------------
+
+def _apply_constraint_plugins(m: pyo.ConcreteModel, constraint_specs: Iterable[dict]) -> None:
+    """
+    Apply registered constraint blocks in the order provided.
+
+    Each spec should contain:
+      { "type": "<registry name>", "params": {...} }
+    """
+    for idx, c in enumerate(constraint_specs, start=1):
+        name = c.get("type")
+        params: Dict = c.get("params", {})
+        if not name:
+            raise ValueError(f"Constraint spec at position {idx} missing 'type' key.")
+        handler = get_constraint(name)
+        handler(m, params)
+
+
+def _apply_objective_plugin(m: pyo.ConcreteModel, objective_specs: Iterable[dict]) -> None:
+    """
+    Apply the (first) registered objective handler.
+
+    Each spec should contain:
+      { "name": "<registry name>", "sense": "maximize|minimize", "params": {...} }
+
+    If multiple objectives are supplied, we currently take the first one.
+    Weighted or lexicographic combinations can be implemented in the future
+    at the builder level.
+    """
+    specs = list(objective_specs)
+    if not specs:
+        # Provide a minimal default if none specified
+        specs = [{"name": "sum_utility", "sense": "maximize", "params": {}}]
+
+    obj = specs[0]
+    name = obj.get("name")
+    sense = obj.get("sense", "maximize")
+    params: Dict = obj.get("params", {})
+
+    if not name:
+        raise ValueError("Objective spec missing 'name' key.")
+
+    handler = get_objective(name)
+    handler(m, params=params, sense=sense)
