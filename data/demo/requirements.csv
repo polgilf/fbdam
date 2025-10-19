@@ -1,0 +1,10 @@
+household_id,nutrient_id,R_nh
+H1,cal,2100
+H1,prot,50
+H1,calc,1000
+H2,cal,6000
+H2,prot,120
+H2,calc,2500
+H3,cal,9500
+H3,prot,220
+H3,calc,4000

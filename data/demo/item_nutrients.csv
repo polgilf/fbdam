@@ -1,0 +1,13 @@
+item_id,nutrient_id,a_in
+rice,cal,3600
+rice,prot,70
+rice,calc,30
+beans,cal,3300
+beans,prot,210
+beans,calc,110
+milk,cal,640
+milk,prot,33
+milk,calc,1200
+apples,cal,520
+apples,prot,2
+apples,calc,60

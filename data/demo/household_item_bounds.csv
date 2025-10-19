@@ -1,0 +1,13 @@
+household_id,item_id,ub
+H1,rice,3
+H1,beans,3
+H1,milk,3
+H1,apples,3
+H2,rice,9
+H2,beans,9
+H2,milk,9
+H2,apples,9
+H3,rice,15
+H3,beans,15
+H3,milk,15
+H3,apples,15

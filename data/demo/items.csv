@@ -1,0 +1,5 @@
+item_id,name,unit,r_i,S_i,price
+rice,Rice,kg,1,20,1.0
+beans,Beans,kg,1,12,1.2
+milk,Milk,L,1,10,0.9
+apples,Apples,kg,1,8,1.1
