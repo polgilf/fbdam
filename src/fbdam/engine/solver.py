@@ -189,7 +189,12 @@ def _extract_variable_values(model: pyo.ConcreteModel) -> Dict[str, float]:
     for var in model.component_objects(pyo.Var, active=True):
         name = var.getname()
         for idx in var:
-            values[f"{name}[{idx}]"] = pyo.value(var[idx])
+            # ``pyo.value`` raises when a variable is uninitialized.  That can
+            # happen if the solver terminates early or if a variable is fixed
+            # by constraints rather than explicitly assigned a value.  Using
+            # ``exception=False`` gives us ``None`` instead of bubbling up an
+            # error so callers can still inspect the solution dictionary.
+            values[f"{name}[{idx}]"] = pyo.value(var[idx], exception=False)
     return values
 
 
