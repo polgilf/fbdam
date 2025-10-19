@@ -17,6 +17,7 @@ Typical usage:
 from __future__ import annotations
 import inspect
 import time
+import warnings
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 import pyomo.environ as pyo
@@ -92,6 +93,11 @@ def _select_solver(name: str, options: Dict[str, Any]) -> Tuple[str, Optional[An
         if solver is not None:
             return candidate, solver
 
+    warnings.warn(
+        "No compatible solver found (tried appsi_highs/highs); falling back to mock solution.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
     return "mock", None
 
 
