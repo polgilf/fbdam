@@ -56,21 +56,34 @@ After installation, the `fbdam` console script is available on your PATH.
 ## Running a scenario
 
 1. Prepare a YAML scenario referencing your data and the built-in catalogs.
-   Save it anywhere you like (e.g., `scenarios/demo.yaml`). A minimal example
-   targeting the demo CSVs looks like:
+   Save it anywhere you like (e.g., `scenarios/demo-balanced.yaml`). A minimal
+   example targeting the bundled demo CSVs looks like:
 
    ```yaml
    version: v1.0
+   name: Demo balanced allocation
    data:
-     items: data/demo/items.csv
-     nutrients: data/demo/nutrients.csv
-     households: data/demo/households.csv
-     requirements: data/demo/dri.csv
-     item_nutrients: data/demo/item_nutrients.csv
-     bounds: data/demo/household_item_bounds.csv
+     items_csv: data/demo/items.csv
+     nutrients_csv: data/demo/nutrients.csv
+     households_csv: data/demo/households.csv
+     requirements_csv: data/demo/requirements.csv
+     item_nutrients_csv: data/demo/item_nutrients.csv
+     household_item_bounds_csv: data/demo/household_item_bounds.csv
    model:
+     dials:
+       alpha: 0.25
+       beta: 0.15
+       gamma: 0.10
+       kappa: 0.05
+       rho: 0.20
+       omega: 0.30
+     budget: 1500
+     lambda: 0.8
      constraints:
        - ref: util_link
+       - ref: fairshare_cap_house
+         override:
+           alpha: 0.25
      objectives:
        - ref: sum_utility
    solver:
@@ -82,7 +95,7 @@ After installation, the `fbdam` console script is available on your PATH.
 2. Run the pipeline and send outputs to a directory of your choice:
 
    ```bash
-   fbdam run scenarios/demo.yaml --outputs outputs/demo-run
+    fbdam run scenarios/demo-balanced.yaml --outputs outputs/demo-run
    ```
 
    Add `--solver highs` to override the solver at runtime or invoke

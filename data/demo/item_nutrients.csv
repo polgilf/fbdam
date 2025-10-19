@@ -1,4 +1,4 @@
-item_id,nutrient_id,a_in
+item_id,nutrient_id,qty_per_unit
 rice,cal,3600
 rice,prot,70
 rice,calc,30

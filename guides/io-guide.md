@@ -38,11 +38,27 @@ status: draft
 data:
   items_csv: data/demo/items.csv
   nutrients_csv: data/demo/nutrients.csv
+  households_csv: data/demo/households.csv
+  requirements_csv: data/demo/requirements.csv
+  item_nutrients_csv: data/demo/item_nutrients.csv
+  household_item_bounds_csv: data/demo/household_item_bounds.csv
 
 model:
+  dials:
+    alpha: 0.25
+    beta: 0.15
+    gamma: 0.10
+    kappa: 0.05
+    rho: 0.20
+    omega: 0.30
+  budget: 1500
+  lambda: 0.8
   constraints:
     - ref: util_link
       override: {}
+    - ref: fairshare_cap_house
+      override:
+        alpha: 0.25
   objectives:
     - ref: sum_utility
 
@@ -105,8 +121,18 @@ Expected output (simplified):
 
 ```
 ScenarioConfig(
-  data_paths={'items_csv': PosixPath('/.../data/demo/items.csv'), 'nutrients_csv': ...},
-  constraints=[MaterializedConstraint(id='util_link', type='u_link', params={})],
+  data_paths={
+    'household_item_bounds_csv': PosixPath('/.../data/demo/household_item_bounds.csv'),
+    'households_csv': PosixPath('/.../data/demo/households.csv'),
+    'item_nutrients_csv': PosixPath('/.../data/demo/item_nutrients.csv'),
+    'items_csv': PosixPath('/.../data/demo/items.csv'),
+    'nutrients_csv': PosixPath('/.../data/demo/nutrients.csv'),
+    'requirements_csv': PosixPath('/.../data/demo/requirements.csv')
+  },
+  constraints=[
+    MaterializedConstraint(id='util_link', type='u_link', params={}),
+    MaterializedConstraint(id='fairshare_cap_house', type='fairshare_cap_house', params={'alpha': 0.25})
+  ],
   objectives=[MaterializedObjective(id='sum_utility', name='sum_utility', sense='maximize', params={})],
   solver=SolverConfig(name='appsi_highs', options={'time_limit': 10}),
   raw=...
@@ -125,7 +151,13 @@ You can touch empty files to silence this:
 
 ```bash
 mkdir -p data/demo
-touch data/demo/items.csv data/demo/nutrients.csv
+touch \
+  data/demo/items.csv \
+  data/demo/nutrients.csv \
+  data/demo/households.csv \
+  data/demo/requirements.csv \
+  data/demo/item_nutrients.csv \
+  data/demo/household_item_bounds.csv
 ```
 
 Then rerun — now it should succeed.
@@ -144,8 +176,24 @@ def test_io_loader_minimal(tmp_path):
     # Prepare dummy files
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    (data_dir / "items.csv").write_text("id,name\n1,Rice\n")
-    (data_dir / "nutrients.csv").write_text("id,name\nN1,Protein\n")
+    (data_dir / "items.csv").write_text(
+        "item_id,name,unit,stock,cost\nI1,Rice,kg,10,1.5\n"
+    )
+    (data_dir / "nutrients.csv").write_text(
+        "nutrient_id,name,unit\nN1,Protein,g\n"
+    )
+    (data_dir / "households.csv").write_text(
+        "household_id,name,fairshare_weight\nH1,Demo household,1.0\n"
+    )
+    (data_dir / "requirements.csv").write_text(
+        "household_id,nutrient_id,requirement\nH1,N1,5\n"
+    )
+    (data_dir / "item_nutrients.csv").write_text(
+        "item_id,nutrient_id,qty_per_unit\nI1,N1,10\n"
+    )
+    (data_dir / "household_item_bounds.csv").write_text(
+        "household_id,item_id,lower,upper\nH1,I1,0,10\n"
+    )
 
     # Create dummy scenario YAML
     scenario_path = tmp_path / "scenario.yaml"
@@ -155,6 +203,10 @@ status: draft
 data:
   items_csv: {data_dir}/items.csv
   nutrients_csv: {data_dir}/nutrients.csv
+  households_csv: {data_dir}/households.csv
+  requirements_csv: {data_dir}/requirements.csv
+  item_nutrients_csv: {data_dir}/item_nutrients.csv
+  household_item_bounds_csv: {data_dir}/household_item_bounds.csv
 model:
   constraints:
     - ref: util_link

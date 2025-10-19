@@ -1,4 +1,4 @@
-household_id,nutrient_id,R_nh
+household_id,nutrient_id,requirement
 H1,cal,2100
 H1,prot,50
 H1,calc,1000
