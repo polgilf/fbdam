@@ -142,11 +142,13 @@ $$
 ---
 
 ## Minimal data dictionary
-- **items.csv**: $i$, $S_i$, $c_i$ (optional).  
-- **nutrients.csv**: $i$, $n$, $a_{i,n}$.  
-- **households.csv**: $h$, $w_h$.  
-- **requirements.csv**: $n$, $h$, $R_{n,h}$.  
-- **parameters.yaml**: Budget, Dial values,...
+- **items.csv**: `item_id`, `name`, `unit`, `stock`, `cost` (optional).
+- **nutrients.csv**: `nutrient_id`, `name`, `unit` (optional).
+- **households.csv**: `household_id`, `name`, `fairshare_weight` (normalized to 1).
+- **requirements.csv**: `household_id`, `nutrient_id`, `requirement`.
+- **item_nutrients.csv**: `item_id`, `nutrient_id`, `qty_per_unit`.
+- **household_item_bounds.csv**: `household_id`, `item_id`, `lower`, `upper`.
+- **scenario YAML**: dial overrides (`alpha`, `beta`, `gamma`, `kappa`, `rho`, `omega`) plus optional `lambda` and budget $B$.
 
 ---
 

@@ -1,0 +1,39 @@
+version: v1.0
+name: Demo balanced allocation
+status: sample
+
+# Data sources for the demo scenario
+# Paths are relative to this YAML file.
+data:
+  items_csv: ../data/demo/items.csv
+  nutrients_csv: ../data/demo/nutrients.csv
+  households_csv: ../data/demo/households.csv
+  requirements_csv: ../data/demo/requirements.csv
+  item_nutrients_csv: ../data/demo/item_nutrients.csv
+  household_item_bounds_csv: ../data/demo/household_item_bounds.csv
+
+model:
+  description: |
+    Scenario balancing nutritious deliveries across three households
+    with proportional fairness caps and a simple utility objective.
+  dials:
+    alpha: 0.25
+    beta: 0.15
+    gamma: 0.10
+    kappa: 0.05
+    rho: 0.20
+    omega: 0.30
+  budget: 1500
+  lambda: 0.8
+  constraints:
+    - ref: util_link
+    - ref: fairshare_cap_house
+      override:
+        alpha: 0.25
+  objectives:
+    - ref: sum_utility
+
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 10
