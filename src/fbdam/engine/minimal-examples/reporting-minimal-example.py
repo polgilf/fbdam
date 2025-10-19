@@ -1,7 +1,7 @@
 from pathlib import Path
 from fbdam.engine.model import build_model
 from fbdam.engine.solver import solve_model
-from fbdam.engine.reporting import write_report
+from fbdam.engine.reporting_old import write_report
 
 m = build_model(cfg)  # cfg contiene "domain" (DomainIndex) y "model" (spec)
 res = solve_model(m, solver_name="appsi_highs", options={"time_limit": 5})

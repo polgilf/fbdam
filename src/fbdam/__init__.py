@@ -20,7 +20,7 @@ __version__ = "0.1.0"
 # High-level, stable API imports (do NOT re-export submodules wholesale)
 from fbdam.engine.model import build_model
 from fbdam.engine.solver import solve_model
-from fbdam.engine.reporting import write_report
+from fbdam.engine.reporting_old import write_report
 
 # Optional: expose the Typer CLI app (if you want programmatic access)
 try:
