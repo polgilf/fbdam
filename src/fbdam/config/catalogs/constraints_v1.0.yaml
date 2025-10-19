@@ -1,10 +1,10 @@
 # constraints_v1.0.yaml
 # Catalog of constraint templates for FBDAM v1.0
 # ---------------------------------------------------------
-# - Define bloques de restricciones reutilizables por ID
-# - Cada bloque tiene: id, type (handler en código), params
-# - Se referencian desde escenarios vía: constraints: [{ref: <id>}]
-# - Los params pueden sobrescribirse con "override" en el escenario
+# - Define reusable constraint blocks by ID
+# - Each block has: id, type (handler in code), params
+# - Referenced from scenarios via: constraints: [{ref: <id>}]
+# - Params can be overridden with "override" in the scenario
 # ---------------------------------------------------------
 
 version: v1.0
@@ -15,67 +15,67 @@ constraints:
   - id: util_link
     type: u_link
     description: >
-      Vincula utilidad con cantidad y requerimiento:
+      Links utility with quantity and requirement:
       u[n,h] <= q[n,h] / R[h,n]
     params: {}
   - id: stock_balance
     type: stock_balance
     description: >
-      Balancea inventario: la suma de asignaciones por ítem no puede superar
-      la disponibilidad donada más las compras (S_i + y_i).
+      Balances inventory: the sum of allocations per item cannot exceed
+      donated availability plus purchases (S_i + y_i).
     params: {}
   - id: purchase_budget
     type: purchase_budget
     description: >
-      Limita el gasto total en compras según el presupuesto del escenario o
-      el parámetro 'budget' provisto en el bloque.
+      Limits total spending on purchases according to the scenario budget or
+      the 'budget' parameter provided in the block.
     params: {}
   - id: fairshare_cap_house
     type: fairshare_cap_house
     description: >
-      Limita la desviación absoluta respecto a una asignación proporcional
-      basada en el peso fairshare_weight de cada hogar (usa el dial alpha).
+      Limits absolute deviation from a proportional allocation
+      based on each household's fairshare_weight (uses alpha dial).
     params:
       alpha: 0.7
   - id: deviation_identity
     type: deviation_identity
     description: >
-      Descompone la desviación absoluta frente al fair-share w_h·(S_i + y_i)
-      mediante las variables delta^+ y delta^-.
+      Decomposes absolute deviation from fair-share w_h·(S_i + y_i)
+      using delta^+ and delta^- variables.
     params: {}
   - id: deviation_item_cap
     type: deviation_item_cap
     description: >
-      Cota L1 agregada por ítem usando el dial alpha_i: suma_h (delta^+ + delta^-)
+      Aggregate L1 cap per item using alpha_i dial: sum_h (delta^+ + delta^-)
       <= alpha_i · (S_i + y_i).
     params: {}
   - id: deviation_household_cap
     type: deviation_household_cap
     description: >
-      Cota L1 agregada por hogar usando el dial beta_h: suma_i (delta^+ + delta^-)
+      Aggregate L1 cap per household using beta_h dial: sum_i (delta^+ + delta^-)
       <= beta_h · TotSupply.
     params: {}
   - id: deviation_pair_cap
     type: deviation_pair_cap
     description: >
-      Cota L1 por par (i,h) usando el dial rho_{i,h}: delta^+ + delta^- <= rho_{i,h}·(S_i + y_i).
+      L1 cap per pair (i,h) using rho_{i,h} dial: delta^+ + delta^- <= rho_{i,h}·(S_i + y_i).
     params: {}
   - id: household_floor
     type: household_floor
     description: >
-      Impone el suelo agregado por hogar: \bar{u}_h - omega_h·\bar{u}_{all} >= -epsilon.
-      El dial omega puede ser escalar o por hogar; use_slack controla el uso de epsilon.
+      Imposes aggregate floor per household: \bar{u}_h - omega_h·\bar{u}_{all} >= -epsilon.
+      The omega dial can be scalar or per household; use_slack controls epsilon usage.
     params:
       use_slack: auto
   - id: nutrient_floor
     type: nutrient_floor
     description: >
-      Impone el suelo agregado por nutriente: \bar{u}_n - gamma_n·\bar{u}_{all} >= -epsilon.
+      Imposes aggregate floor per nutrient: \bar{u}_n - gamma_n·\bar{u}_{all} >= -epsilon.
     params:
       use_slack: auto
   - id: pair_floor
     type: pair_floor
     description: >
-      Impone el suelo por par nutriente-hogar: u[n,h] - kappa_{n,h}·\bar{u}_{all} >= -epsilon.
+      Imposes floor per nutrient-household pair: u[n,h] - kappa_{n,h}·\bar{u}_{all} >= -epsilon.
     params:
       use_slack: auto
