@@ -1,0 +1,1 @@
+python -m fbdam.engine.run run scenarios/demo-tnu.yaml --outputs outputs/demo-tnu

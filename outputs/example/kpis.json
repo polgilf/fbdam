@@ -1,9 +1,0 @@
-{
-  "kpi": {
-    "tnu": 9.0,
-    "u_min": 1.0,
-    "u_mean": 0.92,
-    "fairness_L1_house": 0.3849998,
-    "cost_total": 12.34
-  }
-}

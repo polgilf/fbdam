@@ -12,7 +12,7 @@ Inputs expected:
     }
 
 Notes:
-- Requirements: the former DRI are now Requirements. We expose R[h,n].
+- Requirements: We expose R[h,n].
 - We protect against division-by-zero by flooring R[h,n] with a small epsilon.
 - Nutrient delivery q[n,h] is an Expression from x[i,h] and item nutrient content.
 - Utility u[n,h] is a variable bounded in [0, 1]; keep it clean and let constraints
@@ -128,7 +128,7 @@ def _build_sets(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
 
 
 def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
-    """Create parameters: stock S[i], nutrient content C[i,n], requirements R[h,n], fairshare weights."""
+    """Create parameters: stock S[i], nutrient content a[i,n], requirements R[h,n], fairshare weights."""
 
     items: Mapping[str, Item] = domain.items
     nutrients: Mapping[str, Nutrient] = domain.nutrients
@@ -163,10 +163,10 @@ def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
         doc="Household fair-share weight",
     )
 
-    # Nutrient content C[i,n] (>= 0), default 0 if (i,n) pair not present
-    def _C_init(model, i, n):
+    # Nutrient content a[i,n] (>= 0), default 0 if (i,n) pair not present
+    def _a_init(model, i, n):
         return float(item_nutrients.get((i, n), ItemNutrient(i, n, 0.0)).qty_per_unit)
-    m.C = pyo.Param(m.I, m.N, initialize=_C_init, within=pyo.NonNegativeReals, doc="Nutrient content per item-unit")
+    m.a = pyo.Param(m.I, m.N, initialize=_a_init, within=pyo.NonNegativeReals, doc="Nutrient content per item-unit")
 
     # Requirements R[h,n] (>= 0), protect against division by zero with epsilon floor
     EPS_R = 1e-9
@@ -194,7 +194,8 @@ def _build_variables(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
         ub = None if b.upper is None else float(b.upper)
         return (lb, ub)
 
-    m.x = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, bounds=_x_bounds, doc="Allocation of item i to household h")
+    #m.x = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, bounds=_x_bounds, doc="Allocation of item i to household h")
+    m.x = pyo.Var(m.I, m.H, domain=pyo.NonNegativeIntegers, bounds=_x_bounds, doc="Allocation of item i to household h")
 
     # Utility u[n,h] in [0,1]
     m.u = pyo.Var(m.N, m.H, bounds=(0.0, 1.0), doc="Nutrient-household utility (normalized)")
@@ -213,9 +214,9 @@ def _build_variables(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
 def _build_expressions(m: pyo.ConcreteModel) -> None:
     """Create common expressions used by multiple plugins (q, means, etc.)."""
 
-    # Delivered nutrient quantity q[n,h] := sum_i C[i,n] * x[i,h]
+    # Delivered nutrient quantity q[n,h] := sum_i a[i,n] * x[i,h]
     def _q_expr(model, n, h):
-        return sum(model.C[i, n] * model.x[i, h] for i in model.I)
+        return sum(model.a[i, n] * model.x[i, h] for i in model.I)
     m.q = pyo.Expression(m.N, m.H, rule=_q_expr)
 
     # Available supply per item: Avail_i := S_i + y_i

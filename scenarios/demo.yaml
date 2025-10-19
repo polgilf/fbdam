@@ -27,3 +27,5 @@ solver:
   name: appsi_highs
   options:
     time_limit: 10
+    log_to_console: True
+    log_file: solver.log

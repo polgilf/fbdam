@@ -42,6 +42,7 @@ def solve_model(
     Returns:
         dict with keys: status, termination, solver, time, objective, vars
     """
+
     options = options or {}
     start = time.time()
 
@@ -224,3 +225,81 @@ def print_solver_summary(results: Dict[str, Any]) -> None:
     print(f"Time (s):      {results.get('elapsed_sec')}")
     print(f"Objective val: {results.get('objective_value')}")
     print("======================\n")
+
+# ---------------------------------------------------------------------
+# Utility: quick print summary
+# ---------------------------------------------------------------------
+
+from pathlib import Path
+from datetime import datetime
+from pyomo.opt import SolverFactory
+
+def solve_with_highs(m, run_id: str, base_outputs: Path) -> dict:
+    """
+    Resuelve con HiGHS (APPSI si está disponible) y guarda logs/artefactos.
+    Devuelve metadatos útiles para reporting.
+    """
+    run_id = str(run_id)
+    logs_dir = Path(base_outputs) / "logs"
+    sols_dir = Path(base_outputs) / "solutions"
+    models_dir = Path(base_outputs) / "models"
+    for d in (logs_dir, sols_dir, models_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    log_file = logs_dir / f"highs-{run_id}.log"
+    sol_file = sols_dir / f"highs-solution-{run_id}.txt"
+    mps_file = models_dir / f"model-{run_id}.mps"
+
+    # (Opcional) escribe el MPS exacto que vas a resolver
+    m.write(filename=str(mps_file), io_options={"symbolic_solver_labels": True})
+
+    # Preferir APPSI
+    solver_name = None
+    if SolverFactory('appsi_highs').available():
+        solver_name = 'appsi_highs'
+        solver = SolverFactory('appsi_highs')
+        # Tiempo límite, threads, etc. via config (APPSI) si quieres:
+        # solver.config.time_limit = 300
+        # Pasa opciones nativas de HiGHS:
+        solver.highs_options = {
+            "output_flag": True,
+            "log_to_console": False,
+            "log_file": str(log_file),
+            "write_solution_to_file": True,
+            "write_solution_style": 1,   # 1 = pretty, ver doc
+            "solution_file": str(sol_file),  # APPSI las respeta vía highs_options
+        }
+        res = solver.solve(m)
+    else:
+        # Fallback al wrapper clásico
+        solver_name = 'highs'
+        solver = SolverFactory('highs')
+        # Ojo: en el wrapper clásico, las opciones van en 'options='
+        # y se pasan directas a HiGHS.
+        res = solver.solve(
+            m,
+            tee=False,  # el tee puede no funcionar con highspy
+            options={
+                "output_flag": "true",
+                "log_to_console": "false",
+                "log_file": str(log_file),
+                "write_solution_to_file": "true",
+                "write_solution_style": "1",
+                "solution_file": str(sol_file),
+            }
+        )
+
+    # Metadatos mínimos para tu reporter
+    meta = {
+        "solver": solver_name,
+        "run_id": run_id,
+        "timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "log_file": str(log_file),
+        "solution_file": str(sol_file),
+        "mps_file": str(mps_file),
+        # Campos típicos de interés si los expone 'res'
+        "termination_condition": getattr(getattr(res, "solver", None), "termination_condition", None),
+        "status": getattr(getattr(res, "solver", None), "status", None),
+        "time": getattr(getattr(res, "solver", None), "time", None),
+    }
+    return meta

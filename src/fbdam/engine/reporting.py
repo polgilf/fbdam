@@ -12,6 +12,11 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 
 import pyomo.environ as pyo
 
+try:
+    from pyomo.opt import ProblemFormat  # type: ignore
+except ImportError:  # pragma: no cover - fallback for older Pyomo releases
+    ProblemFormat = None  # type: ignore
+
 from fbdam.engine.domain import DomainIndex
 
 ArtifactRows = Iterable[Sequence[Any]]
@@ -115,6 +120,7 @@ def write_report(
     domain: DomainIndex | None = None,
     cfg_snapshot: Mapping[str, Any] | None = None,
     include_constraints_activity: bool = False,
+    export_mps: bool = True,
     title: str = "FBDAM Run Report",
 ) -> Dict[str, Any]:
     """Generate reporting artifacts for a solved model.
@@ -135,6 +141,8 @@ def write_report(
         Optional configuration snapshot (already validated), persisted for traceability.
     include_constraints_activity:
         When ``True`` dump constraint activities to ``constraints.csv``.
+    export_mps:
+        When ``True`` emit ``model.mps`` alongside standard artifacts.
     title:
         Heading for the Markdown summary.
 
@@ -167,7 +175,7 @@ def write_report(
         run_started_at=run_started_at,
     )
 
-    artifact_specs = _build_artifact_plan(context, include_constraints_activity, title)
+    artifact_specs = _build_artifact_plan(context, include_constraints_activity, export_mps, title)
     artifact_records: List[ArtifactRecord] = []
 
     for spec in artifact_specs:
@@ -218,6 +226,7 @@ def _resolve_run_id(solver_results: Mapping[str, Any], timestamp: str) -> str:
 def _build_artifact_plan(
     context: ReportingContext,
     include_constraints: bool,
+    export_mps: bool,
     title: str,
 ) -> List[ArtifactSpec]:
     specs: List[ArtifactSpec] = [
@@ -234,6 +243,9 @@ def _build_artifact_plan(
 
     if include_constraints:
         specs.append(ArtifactSpec("constraints.csv", "table", _write_constraints_csv_artifact))
+
+    if export_mps:
+        specs.append(ArtifactSpec("model.mps", "model", _write_model_mps_artifact))
 
     return specs
 
@@ -264,6 +276,11 @@ def _write_constraints_csv_artifact(context: ReportingContext, path: str) -> str
 
 def _write_solution_csv_artifact(context: ReportingContext, path: str) -> str:
     return write_solution_csv(context.model, path)
+
+
+def _write_model_mps_artifact(context: ReportingContext, path: str) -> str:
+    """Artifact writer for MPS export."""
+    return write_model_mps(context.model, path)
 
 
 def _build_markdown_writer(title: str) -> Callable[[ReportingContext, str], str]:
@@ -356,6 +373,46 @@ def compute_kpis(
 
     return {"kpi": metrics}
 
+# ---------------------------------------------------------------------------
+# Model MPS export
+# ---------------------------------------------------------------------------
+
+
+def write_model_mps(model: pyo.ConcreteModel, path: str) -> str:
+    """
+    Export the Pyomo model to MPS format.
+    
+    Args:
+        model: Solved or unsolved Pyomo model
+        path: Target file path (e.g., "model.mps")
+    
+    Returns:
+        SHA256 checksum of the written file
+    """
+    _ensure_parent(path)
+
+    io_options = {"symbolic_solver_labels": True}
+
+    fmt = None
+    problem_format = getattr(pyo, "ProblemFormat", None)
+    if problem_format is not None and getattr(problem_format, "mps", None) is not None:
+        fmt = problem_format.mps
+    elif ProblemFormat is not None and getattr(ProblemFormat, "mps", None) is not None:
+        fmt = ProblemFormat.mps
+
+    try:
+        if fmt is not None:
+            model.write(path, format=fmt, io_options=io_options)
+        else:
+            model.write(path, format="mps", io_options=io_options)
+    except TypeError:
+        # Some Pyomo writers do not accept io_options; retry without them.
+        if fmt is not None:
+            model.write(path, format=fmt)
+        else:
+            model.write(path, format="mps")
+
+    return sha256_file(path)
 
 # ---------------------------------------------------------------------------
 # Model statistics extraction (adapted from original module)
@@ -589,4 +646,20 @@ __all__ = [
     "write_constraints_csv",
     "write_solution_csv",
     "write_markdown_summary",
+    "write_model_mps",
 ]
+
+
+
+def attach_solver_artifacts(report: dict, solver_meta: dict) -> dict:
+    report.setdefault("artifacts", {})
+    report["artifacts"]["highs_log"] = solver_meta["log_file"]
+    report["artifacts"]["highs_solution"] = solver_meta["solution_file"]
+    report["artifacts"]["model_mps"] = solver_meta["mps_file"]
+    report["solver"] = {
+        "name": solver_meta["solver"],
+        "termination_condition": solver_meta["termination_condition"],
+        "status": solver_meta["status"],
+        "time": solver_meta["time"],
+    }
+    return report

@@ -114,6 +114,11 @@ def run(
         "--constraints-activity/--no-constraints-activity",
         help="Export constraint activity/slacks tables (may be slow).",
     ),
+    export_mps: bool = typer.Option(
+        True,
+        "--export-mps/--no-export-mps",
+        help="Export the model to MPS format (standard LP/MIP format).",
+    ),
 ) -> None:
     """
     Execute the full pipeline: load → build → solve → report.

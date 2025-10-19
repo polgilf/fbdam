@@ -81,34 +81,40 @@ def _get_lambda_value(model_params: Mapping[str, Any]) -> float | None:
             return float(value)
     return None
 
+# ═══════════════════════════════════════════════════════════════════
+# Dial resolution — Simplified and explicit
+# ═══════════════════════════════════════════════════════════════════
 
 def _get_dial_value(
-    m: pyo.ConcreteModel,
+    model: pyo.ConcreteModel,
     params: Mapping[str, Any],
     name: str,
-    index: Any | None = None,
-    *,
-    default: float | None = None,
+    default: float = 0.0
 ) -> float:
-    sources = []
-    if isinstance(params, Mapping) and name in params:
-        sources.append(params[name])
-
-    model_params = _get_model_params(m)
-    dials = model_params.get("dials") if isinstance(model_params, Mapping) else None
-    if isinstance(dials, Mapping) and name in dials:
-        sources.append(dials[name])
-
-    for source in sources:
-        try:
-            return _materialise_dial_value(source, index, default)
-        except KeyError:
-            continue
-
+    """
+    Resolve dial value with clear priority:
+    1. Constraint-level params[name]
+    2. Model-level model.model_params['dials'][name]
+    3. Provided default
+    
+    Raises ValueError if not found and no default.
+    """
+    # Priority 1: constraint params
+    if name in params:
+        return float(params[name])
+    
+    # Priority 2: model dials
+    model_params = getattr(model, "model_params", {})
+    if isinstance(model_params, Mapping):
+        dials = model_params.get("dials", {})
+        if isinstance(dials, Mapping) and name in dials:
+            return float(dials[name])
+    
+    # Priority 3: default
     if default is not None:
         return float(default)
-
-    raise KeyError(f"Dial '{name}' not provided for index {index!r}.")
+    
+    raise ValueError(f"Dial '{name}' not found in params or model.model_params.dials")
 
 
 def _materialise_dial_value(source: Any, index: Any | None, default: float | None) -> float:
@@ -199,7 +205,7 @@ def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
     """Ensure allocations of each item do not exceed available supply."""
 
     def rule(model, i):
-        return sum(model.x[i, h] for h in model.H) <= model.Avail[i]
+        return sum(model.x[i, h] for h in model.H) <= 3 #model.Avail[i]
 
     m.StockBalance = pyo.Constraint(m.I, rule=rule)
 
