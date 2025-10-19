@@ -111,6 +111,7 @@ def write_report(
     model: pyo.ConcreteModel,
     solver_results: Mapping[str, Any],
     run_dir: os.PathLike[str] | str,
+    run_id: str | None = None,
     domain: DomainIndex | None = None,
     cfg_snapshot: Mapping[str, Any] | None = None,
     include_constraints_activity: bool = False,
@@ -126,6 +127,8 @@ def write_report(
         Mapping produced by :func:`fbdam.engine.solver.solve_model`.
     run_dir:
         Target directory where artifacts will be stored.
+    run_id:
+        Optional run identifier overriding the generated timestamp-based value.
     domain:
         Optional :class:`DomainIndex` that provides context for KPIs.
     cfg_snapshot:
@@ -147,9 +150,9 @@ def write_report(
 
     timestamp = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     run_started_at = timestamp.isoformat().replace("+00:00", "Z")
-    run_id = _resolve_run_id(solver_results, run_started_at)
+    resolved_run_id = run_id or _resolve_run_id(solver_results, run_started_at)
 
-    solver_report = _normalise_solver_report(solver_results, run_id, run_started_at)
+    solver_report = _normalise_solver_report(solver_results, resolved_run_id, run_started_at)
     model_stats = extract_model_stats(model)
     kpis = compute_kpis(model, domain, solver_report)
 
@@ -160,7 +163,7 @@ def write_report(
         kpis=kpis,
         cfg_snapshot=cfg_snapshot,
         domain=domain,
-        run_id=run_id,
+        run_id=resolved_run_id,
         run_started_at=run_started_at,
     )
 
