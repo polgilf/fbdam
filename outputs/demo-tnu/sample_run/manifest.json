@@ -1,0 +1,50 @@
+{
+  "run": {
+    "id": "fbdam-20251019T202652Z",
+    "started_at": "2025-10-19T20:26:52Z"
+  },
+  "solver": {
+    "name": "mock",
+    "status": "mock-solution",
+    "termination": "not attempted",
+    "elapsed_sec": 0.0014,
+    "objective_value": 0.0
+  },
+  "artifacts": [
+    {
+      "path": "solver_report.json",
+      "sha256": "f33bcfb7a4ed31657a952e99d088788fc64e70b9054209273b5dee5ae051bbaf",
+      "kind": "metric"
+    },
+    {
+      "path": "model_stats.json",
+      "sha256": "96fd153f2c54dea93bfdb9773029d890e0bce44eefb1dd4a44b6e2c768354c37",
+      "kind": "metric"
+    },
+    {
+      "path": "kpis.json",
+      "sha256": "1cf09cbcfdcd977a882f8e480cebe461227d99a99a4d22c1e37865f201a4dbec",
+      "kind": "metric"
+    },
+    {
+      "path": "variables.csv",
+      "sha256": "2833ca7b73ce6838883288c4b3e10895ec9170170d3dd7dfda0e27fa61763d5d",
+      "kind": "table"
+    },
+    {
+      "path": "solution.csv",
+      "sha256": "c570a15862de72172510e8da1de84267ed489d6b2f020eef8798b59a5d49d7d5",
+      "kind": "table"
+    },
+    {
+      "path": "report.md",
+      "sha256": "df05b077fbe0ce56d9cade6fcc184d334d19ea1352b3cc1d43c6cbefb814be3b",
+      "kind": "report"
+    },
+    {
+      "path": "config_snapshot.json",
+      "sha256": "0fe87e141bbd7130cf3f0ec37927f28ce606b09fd52e78b1f2f50117f8fbd845",
+      "kind": "config"
+    }
+  ]
+}

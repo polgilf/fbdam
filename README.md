@@ -101,8 +101,27 @@ After installation, the `fbdam` console script is available on your PATH.
    Add `--solver highs` to override the solver at runtime or invoke
    `fbdam version` to print the installed package version.
 
-All generated artifacts (reports, KPIs, manifest, etc.) are written underneath
+   All generated artifacts (reports, KPIs, manifest, etc.) are written underneath
 `--outputs`. See `outputs/example/` for a reference run.
+
+### End-to-end demo using `params.yaml`
+
+The repository also ships with `scenarios/demo-tnu.yaml`, an end-to-end baseline
+that loads every CSV under `data/demo/` plus the dial configuration in
+`data/demo/params.yaml`. The parameter file relaxes every fairness dial and
+sets the budget and lambda penalty to zero, so the run focuses solely on
+maximizing total nutrient utility (TNU).
+
+Execute it with:
+
+```bash
+python -m fbdam.engine.run run scenarios/demo-tnu.yaml --outputs outputs/demo-tnu
+```
+
+This creates a timestamped folder inside `outputs/demo-tnu/` containing the
+manifest, KPIs, solver report, and CSV exports for allocations and variables.
+For convenience the repository also includes `outputs/demo-tnu/sample_run/`
+as a checked-in reference execution.
 
 ## Programmatic usage
 
