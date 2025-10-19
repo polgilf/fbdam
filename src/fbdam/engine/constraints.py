@@ -205,7 +205,7 @@ def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
     """Ensure allocations of each item do not exceed available supply."""
 
     def rule(model, i):
-        return sum(model.x[i, h] for h in model.H) <= 3 #model.Avail[i]
+        return sum(model.x[i, h] for h in model.H) <= model.Avail[i]
 
     m.StockBalance = pyo.Constraint(m.I, rule=rule)
 
