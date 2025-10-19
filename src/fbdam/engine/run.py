@@ -16,7 +16,6 @@ This is a minimal, production-ready skeleton:
 
 from __future__ import annotations
 
-import sys
 from dataclasses import replace
 from pathlib import Path
 from datetime import datetime, timezone
@@ -169,6 +168,7 @@ def run(
             run_id=run_identifier,
             include_constraints_activity=include_constraints_activity,
             solver_log_relative_path=str(log_relative_path) if log_relative_path else None,
+            export_mps=export_mps,
         )
 
         manifest_path = run_dir / "manifest.json"

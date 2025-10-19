@@ -181,7 +181,10 @@ def _load_packaged_yaml(package: str, relative: str) -> Dict[str, Any]:
     try:
         res = resources.files(package).joinpath(relative)
     except Exception as exc:  # pragma: no cover
-        raise IOConfigError(f"Cannot resolve packaged resource: {package}:{relative}") from exc
+        exc_name = type(exc).__name__
+        raise IOConfigError(
+            f"Cannot resolve packaged resource: {package}:{relative} ({exc_name}: {exc})"
+        ) from exc
 
     if not res.is_file():
         raise IOConfigError(f"Packaged YAML not found: {package}:{relative}")

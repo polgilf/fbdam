@@ -192,14 +192,18 @@ def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
 
     # Nutrient content a[i,n] (>= 0), default 0 if (i,n) pair not present
     def _a_init(model, i, n):
-        return float(item_nutrients.get((i, n), ItemNutrient(i, n, 0.0)).qty_per_unit)
+        nutrient_entry = item_nutrients.get((i, n))
+        if nutrient_entry is None:
+            return 0.0
+        return float(nutrient_entry.qty_per_unit)
     m.a = pyo.Param(m.I, m.N, initialize=_a_init, within=pyo.NonNegativeReals, doc="Nutrient content per item-unit")
 
     # Requirements R[h,n] (>= 0), protect against division by zero with epsilon floor
     EPS_R = 1e-9
 
     def _R_init(model, h, n):
-        amt = float(requirements.get((h, n), Requirement(h, n, 0.0)).amount)
+        req_entry = requirements.get((h, n))
+        amt = float(req_entry.amount) if req_entry is not None else 0.0
         return max(amt, EPS_R)
 
     m.R = pyo.Param(

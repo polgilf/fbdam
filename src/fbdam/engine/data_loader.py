@@ -290,13 +290,16 @@ def _load_requirements(path: Path | None) -> Dict[Tuple[HouseholdId, NutrientId]
     for row in _read_csv(
         path,
         required_columns=["household_id", "nutrient_id", "requirement"],
-        numeric_columns=["requirement"],
+        numeric_columns=["requirement", "requirement_or"],
     ):
         key = (str(row["household_id"]), str(row["nutrient_id"]))
+        amount_val = row.get("requirement_or")
+        if amount_val in (None, "", "None"):
+            amount_val = row["requirement"]
         requirements[key] = Requirement(
             household_id=str(row["household_id"]),
             nutrient_id=str(row["nutrient_id"]),
-            amount=float(row["requirement"]),
+            amount=float(amount_val),
         )
     
     return requirements
