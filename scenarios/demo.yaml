@@ -28,8 +28,8 @@ model:
         rho: 0
     - ref: pair_floor
       override:
-        kappa: 1
-        
+        kappa: 0.5
+
   objectives:
     - ref: sum_utility
 
