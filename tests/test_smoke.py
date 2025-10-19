@@ -22,7 +22,7 @@ from fbdam.engine.domain import (
 )
 from fbdam.engine.model import build_model
 from fbdam.engine.solver import solve_model
-from fbdam.engine.reporting_old import write_report
+from fbdam.engine.reporting import write_report
 
 
 def build_minimal_domain() -> DomainIndex:
@@ -121,16 +121,16 @@ def test_full_pipeline(tmp_path: Path = None):
     assert run_dir.exists()
     artifacts = {a["path"] for a in manifest.get("artifacts", [])}
     expected = {
-        "config_snapshot.yaml",
+        "config_snapshot.json",
         "solver_report.json",
         "model_stats.json",
         "kpis.json",
-        "variables.parquet",
+        "variables.csv",
         "solution.csv",
         "report.md",
-        "manifest.json",
     }
     assert expected.issubset(artifacts)
+    assert (run_dir / "manifest.json").exists()
     print(f"\n[SMOKE] Artifacts written to: {run_dir.resolve()}")
 
     # ---- Read back minimal KPI check ----

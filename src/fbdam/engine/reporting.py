@@ -1,35 +1,66 @@
-"""
-reporting.py — Outputs, metrics, and logs for FBDAM
----------------------------------------------------
-Utilities to persist a full "run" with structured artifacts:
-- manifest.json with checksums
-- JSON metrics (solver, model, KPIs)
-- CSV exports for variables and constraints
-- Markdown human-readable report
-- NDJSON event log
-
-Design goals:
-- Pure stdlib + Pyomo (no optional dependencies like pyarrow)
-- Idempotent writes (safe to re-run on the same run_dir)
-- Narrow, composable functions; the CLI/orchestrator decides what to call
-"""
+"""Deterministic reporting utilities for FBDAM runs."""
 
 from __future__ import annotations
 
-import os
-import io
 import csv
-import json
-import hashlib
 import datetime as dt
-from typing import Any, Dict, Iterable, List, Tuple, Optional
+import hashlib
+import json
+import os
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 import pyomo.environ as pyo
 
+from fbdam.engine.domain import DomainIndex
 
-# ------------------------------------------------------------
+ArtifactRows = Iterable[Sequence[Any]]
+
+
+# ---------------------------------------------------------------------------
+# Core dataclasses
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ArtifactRecord:
+    """Structured description of a generated artifact."""
+
+    path: str
+    sha256: str
+    kind: str
+
+    def as_dict(self) -> Dict[str, str]:
+        return {"path": self.path, "sha256": self.sha256, "kind": self.kind}
+
+
+@dataclass(frozen=True)
+class ReportingContext:
+    """Pure container with all data needed to generate report artifacts."""
+
+    model: pyo.ConcreteModel
+    solver_report: Dict[str, Any]
+    model_stats: Dict[str, Any]
+    kpis: Dict[str, Any]
+    cfg_snapshot: Mapping[str, Any] | None
+    domain: DomainIndex | None
+    run_id: str
+    run_started_at: str
+
+
+@dataclass(frozen=True)
+class ArtifactSpec:
+    """Specification linking a relative path with a writer callable."""
+
+    relative_path: str
+    kind: str
+    writer: Callable[[ReportingContext, str], str]
+
+
+# ---------------------------------------------------------------------------
 # Filesystem helpers
-# ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
 
 def _ensure_parent(path: str) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -51,6 +82,16 @@ def write_json(path: str, obj: Any, indent: int = 2) -> str:
     return sha256_file(path)
 
 
+def _write_csv(path: str, header: Sequence[str], rows: ArtifactRows) -> str:
+    _ensure_parent(path)
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for row in rows:
+            writer.writerow(list(row))
+    return sha256_file(path)
+
+
 def sha256_file(path: str) -> str:
     """Compute SHA256 of a file path."""
     h = hashlib.sha256()
@@ -60,84 +101,285 @@ def sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-# ------------------------------------------------------------
-# Manifest + logging
-# ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Public orchestration entry point
+# ---------------------------------------------------------------------------
 
-def save_manifest(run_dir: str, artifacts: List[str], meta: Optional[Dict[str, Any]] = None) -> str:
+
+def write_report(
+    *,
+    model: pyo.ConcreteModel,
+    solver_results: Mapping[str, Any],
+    run_dir: os.PathLike[str] | str,
+    domain: DomainIndex | None = None,
+    cfg_snapshot: Mapping[str, Any] | None = None,
+    include_constraints_activity: bool = False,
+    title: str = "FBDAM Run Report",
+) -> Dict[str, Any]:
+    """Generate reporting artifacts for a solved model.
+
+    Parameters
+    ----------
+    model:
+        Solved Pyomo model instance.
+    solver_results:
+        Mapping produced by :func:`fbdam.engine.solver.solve_model`.
+    run_dir:
+        Target directory where artifacts will be stored.
+    domain:
+        Optional :class:`DomainIndex` that provides context for KPIs.
+    cfg_snapshot:
+        Optional configuration snapshot (already validated), persisted for traceability.
+    include_constraints_activity:
+        When ``True`` dump constraint activities to ``constraints.csv``.
+    title:
+        Heading for the Markdown summary.
+
+    Returns
+    -------
+    dict
+        Manifest with run metadata and artifact descriptors.  The manifest is
+        also persisted to ``manifest.json`` inside ``run_dir``.
     """
-    Create manifest.json in run_dir listing artifact checksums + metadata.
 
-    Args:
-        run_dir: base directory for a single run
-        artifacts: list of relative paths inside run_dir
-        meta: optional metadata to embed (run id, env, times, etc.)
+    run_path = os.fspath(run_dir)
+    os.makedirs(run_path, exist_ok=True)
 
-    Returns:
-        SHA256 digest of the written manifest.json
-    """
-    meta = meta or {}
-    manifest = dict(meta)  # shallow copy
-    rows = []
-    for rel in artifacts:
-        path = os.path.join(run_dir, rel)
-        rows.append({"path": rel, "sha256": sha256_file(path)})
-    manifest["artifacts"] = rows
-    path = os.path.join(run_dir, "manifest.json")
-    return write_json(path, manifest)
+    timestamp = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    run_started_at = timestamp.isoformat().replace("+00:00", "Z")
+    run_id = _resolve_run_id(solver_results, run_started_at)
+
+    solver_report = _normalise_solver_report(solver_results, run_id, run_started_at)
+    model_stats = extract_model_stats(model)
+    kpis = compute_kpis(model, domain, solver_report)
+
+    context = ReportingContext(
+        model=model,
+        solver_report=solver_report,
+        model_stats=model_stats,
+        kpis=kpis,
+        cfg_snapshot=cfg_snapshot,
+        domain=domain,
+        run_id=run_id,
+        run_started_at=run_started_at,
+    )
+
+    artifact_specs = _build_artifact_plan(context, include_constraints_activity, title)
+    artifact_records: List[ArtifactRecord] = []
+
+    for spec in artifact_specs:
+        target = os.path.join(run_path, spec.relative_path)
+        checksum = spec.writer(context, target)
+        artifact_records.append(ArtifactRecord(spec.relative_path, checksum, spec.kind))
+
+    manifest = build_manifest(context, artifact_records)
+    manifest_path = os.path.join(run_path, "manifest.json")
+    write_json(manifest_path, manifest)
+    return manifest
 
 
-def log_event_ndjson(path: str, event: Dict[str, Any]) -> None:
-    """
-    Append a single event to an NDJSON log file with UTC timestamp.
-    """
-    _ensure_parent(path)
-    row = {"t": dt.datetime.utcnow().isoformat(timespec="seconds") + "Z", **event}
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+# ---------------------------------------------------------------------------
+# Manifest helpers
+# ---------------------------------------------------------------------------
 
 
-# ------------------------------------------------------------
-# Model statistics extraction
-# ------------------------------------------------------------
+def build_manifest(context: ReportingContext, artifacts: Sequence[ArtifactRecord]) -> Dict[str, Any]:
+    """Create manifest payload from the reporting context and artifacts."""
+
+    return {
+        "run": {
+            "id": context.run_id,
+            "started_at": context.run_started_at,
+        },
+        "solver": context.solver_report.get("solver", {}),
+        "artifacts": [record.as_dict() for record in artifacts],
+    }
+
+
+def _resolve_run_id(solver_results: Mapping[str, Any], timestamp: str) -> str:
+    candidate = None
+    run_meta = solver_results.get("run") if isinstance(solver_results, Mapping) else None
+    if isinstance(run_meta, Mapping):
+        candidate = run_meta.get("id")
+    if candidate:
+        return str(candidate)
+    compact = timestamp.replace(":", "").replace("-", "")
+    return f"fbdam-{compact}"
+
+
+# ---------------------------------------------------------------------------
+# Artifact plan + writers
+# ---------------------------------------------------------------------------
+
+
+def _build_artifact_plan(
+    context: ReportingContext,
+    include_constraints: bool,
+    title: str,
+) -> List[ArtifactSpec]:
+    specs: List[ArtifactSpec] = [
+        ArtifactSpec("solver_report.json", "metric", _write_solver_report),
+        ArtifactSpec("model_stats.json", "metric", _write_model_stats),
+        ArtifactSpec("kpis.json", "metric", _write_kpis),
+        ArtifactSpec("variables.csv", "table", _write_variables_csv_artifact),
+        ArtifactSpec("solution.csv", "table", _write_solution_csv_artifact),
+        ArtifactSpec("report.md", "report", _build_markdown_writer(title)),
+    ]
+
+    if context.cfg_snapshot is not None:
+        specs.append(ArtifactSpec("config_snapshot.json", "config", _write_config_snapshot))
+
+    if include_constraints:
+        specs.append(ArtifactSpec("constraints.csv", "table", _write_constraints_csv_artifact))
+
+    return specs
+
+
+def _write_solver_report(context: ReportingContext, path: str) -> str:
+    return write_json(path, context.solver_report)
+
+
+def _write_model_stats(context: ReportingContext, path: str) -> str:
+    return write_json(path, context.model_stats)
+
+
+def _write_kpis(context: ReportingContext, path: str) -> str:
+    return write_json(path, context.kpis)
+
+
+def _write_config_snapshot(context: ReportingContext, path: str) -> str:
+    return write_json(path, context.cfg_snapshot)
+
+
+def _write_variables_csv_artifact(context: ReportingContext, path: str) -> str:
+    return write_variables_csv(context.model, path)
+
+
+def _write_constraints_csv_artifact(context: ReportingContext, path: str) -> str:
+    return write_constraints_csv(context.model, path)
+
+
+def _write_solution_csv_artifact(context: ReportingContext, path: str) -> str:
+    return write_solution_csv(context.model, path)
+
+
+def _build_markdown_writer(title: str) -> Callable[[ReportingContext, str], str]:
+    def _writer(context: ReportingContext, path: str) -> str:
+        return write_markdown_summary(
+            path=path,
+            solver_report=context.solver_report,
+            kpis=context.kpis,
+            model_stats=context.model_stats,
+            title=title,
+        )
+
+    return _writer
+
+
+# ---------------------------------------------------------------------------
+# Solver + KPI computations
+# ---------------------------------------------------------------------------
+
+
+def _normalise_solver_report(
+    solver_results: Mapping[str, Any],
+    run_id: str,
+    run_started_at: str,
+) -> Dict[str, Any]:
+    solver_section = {
+        "name": solver_results.get("solver"),
+        "status": solver_results.get("status"),
+        "termination": solver_results.get("termination"),
+        "elapsed_sec": solver_results.get("elapsed_sec"),
+        "objective_value": solver_results.get("objective_value"),
+        "gap": solver_results.get("gap"),
+        "best_bound": solver_results.get("best_bound"),
+    }
+
+    return {
+        "run": {
+            "id": run_id,
+            "started_at": run_started_at,
+        },
+        "solver": {k: v for k, v in solver_section.items() if v is not None},
+        "raw": dict(solver_results),
+    }
+
+
+def compute_kpis(
+    model: pyo.ConcreteModel,
+    domain: DomainIndex | None,
+    solver_report: Mapping[str, Any],
+) -> Dict[str, Any]:
+    metrics: Dict[str, Any] = {}
+
+    solver_section = solver_report.get("solver")
+    if isinstance(solver_section, Mapping) and "objective_value" in solver_section:
+        metrics["objective_value"] = solver_section["objective_value"]
+
+    total_alloc = 0.0
+    alloc_count = 0
+    if hasattr(model, "x"):
+        items = sorted(list(model.I), key=str)
+        households = sorted(list(model.H), key=str)
+        for i in items:
+            for h in households:
+                value = pyo.value(model.x[i, h], exception=False)
+                if value is None:
+                    continue
+                total_alloc += float(value)
+                alloc_count += 1
+    metrics["total_allocation"] = total_alloc
+    metrics["avg_allocation_per_pair"] = total_alloc / alloc_count if alloc_count else 0.0
+
+    util_sum = 0.0
+    util_count = 0
+    if hasattr(model, "u"):
+        nutrients = sorted(list(model.N), key=str)
+        households = sorted(list(model.H), key=str)
+        for n in nutrients:
+            for h in households:
+                value = pyo.value(model.u[n, h], exception=False)
+                if value is None:
+                    continue
+                util_sum += float(value)
+                util_count += 1
+    metrics["mean_utility"] = util_sum / util_count if util_count else 0.0
+
+    if domain is not None:
+        metrics["items"] = len(domain.items)
+        metrics["households"] = len(domain.households)
+        metrics["nutrients"] = len(domain.nutrients)
+
+    return {"kpi": metrics}
+
+
+# ---------------------------------------------------------------------------
+# Model statistics extraction (adapted from original module)
+# ---------------------------------------------------------------------------
+
 
 def extract_model_stats(model: pyo.ConcreteModel) -> Dict[str, Any]:
-    """
-    Compute counts of variables/constraints by component and type.
+    """Compute counts of variables/constraints by component and type."""
 
-    Returns:
-        {
-          "model": {
-            "vars_total": int,
-            "vars_by_domain": {"x[i,h]": 200, ...},
-            "vars_by_type": {"Binary": 10, "Integer": 5, "Continuous": 123},
-            "cons_total": int,
-            "cons_by_block": {"U_link": 120, ...}
-          }
-        }
-    """
-    # Variables
     vars_by_domain: Dict[str, int] = {}
     vars_by_type: Dict[str, int] = {"Binary": 0, "Integer": 0, "Continuous": 0}
     total_vars = 0
 
     for var in model.component_objects(pyo.Var, active=True):
         name = var.getname()
-        count = sum(1 for _ in var.index_set())
-        vars_by_domain[name] = vars_by_domain.get(name, 0) + count
-        total_vars += count
+        for idx in var:
+            vars_by_domain[name] = vars_by_domain.get(name, 0) + 1
+            total_vars += 1
 
-        # Type classification (best effort)
-        vdomain = var.domain
-        if vdomain is pyo.Binary:
-            vars_by_type["Binary"] += count
-        elif vdomain in (pyo.Integers, pyo.PositiveIntegers, pyo.NonNegativeIntegers):
-            vars_by_type["Integer"] += count
-        else:
-            # Everything else considered continuous (NonNegativeReals, Reals, etc.)
-            vars_by_type["Continuous"] += count
+            vardata = var[idx]
+            if getattr(vardata, "is_binary", None) and vardata.is_binary():
+                vars_by_type["Binary"] += 1
+            elif getattr(vardata, "is_integer", None) and vardata.is_integer():
+                vars_by_type["Integer"] += 1
+            else:
+                vars_by_type["Continuous"] += 1
 
-    # Constraints
     cons_by_block: Dict[str, int] = {}
     total_cons = 0
     for cons in model.component_objects(pyo.Constraint, active=True):
@@ -157,89 +399,76 @@ def extract_model_stats(model: pyo.ConcreteModel) -> Dict[str, Any]:
     }
 
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # CSV exports
-# ------------------------------------------------------------
-
-def _write_csv(path: str, header: List[str], rows: Iterable[List[Any]]) -> str:
-    _ensure_parent(path)
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(header)
-        for r in rows:
-            w.writerow(r)
-    return sha256_file(path)
+# ---------------------------------------------------------------------------
 
 
 def write_variables_csv(model: pyo.ConcreteModel, path: str) -> str:
-    """
-    Export all active variables to a wide CSV.
-    Columns: var, i, h, n, index_extra, value, lb, ub
+    """Export all active variables to a wide CSV."""
 
-    - For index tuples longer than 3, extra components go to index_extra (repr).
-    - lb/ub extracted per VarData (best-effort; may be None).
-    """
     header = ["var", "i", "h", "n", "index_extra", "value", "lb", "ub"]
-    def _rows():
+
+    def _rows() -> ArtifactRows:
         for var in model.component_objects(pyo.Var, active=True):
             vname = var.getname()
             for idx in var:
                 v = var[idx]
-                value = pyo.value(v)
-                lb = v.lb if hasattr(v, "lb") else None
-                ub = v.ub if hasattr(v, "ub") else None
-                # normalize index
+                value = pyo.value(v, exception=False)
+                lb = getattr(v, "lb", None)
+                ub = getattr(v, "ub", None)
                 if isinstance(idx, tuple):
                     i, h, n, extra = _split_index(idx)
                 else:
                     i, h, n, extra = _split_index((idx,))
                 yield [vname, i, h, n, extra, value, lb, ub]
+
     return _write_csv(path, header, _rows())
 
 
 def write_constraints_csv(model: pyo.ConcreteModel, path: str) -> str:
-    """
-    Export constraint activities to CSV (best-effort).
-    Columns: cons, i, h, n, index_extra, lower, body, upper, activity, slack_lower, slack_upper, dual
+    """Export constraint activities to CSV."""
 
-    Notes:
-    - 'dual' requires a Suffix('dual') populated by the solver (LPs).
-    - Slack is computed when bounds exist; otherwise left blank.
-    """
-    header = ["cons", "i", "h", "n", "index_extra",
-              "lower", "body", "upper", "activity", "slack_lower", "slack_upper", "dual"]
+    header = [
+        "cons",
+        "i",
+        "h",
+        "n",
+        "index_extra",
+        "lower",
+        "body",
+        "upper",
+        "activity",
+        "slack_lower",
+        "slack_upper",
+        "dual",
+    ]
 
-    # Optional dual suffix
     duals = None
     for suf in model.component_objects(pyo.Suffix, active=True):
         if suf.getname() == "dual":
             duals = suf
             break
 
-    def _rows():
+    def _rows() -> ArtifactRows:
         for cons in model.component_objects(pyo.Constraint, active=True):
             cname = cons.getname()
-            if cons.is_indexed():
-                iterator = cons.items()
-            else:
-                iterator = [ (None, cons) ]
+            iterator = cons.items() if cons.is_indexed() else [(None, cons)]
             for key, c in iterator:
                 lower = pyo.value(c.lower) if c.has_lb() else None
                 upper = pyo.value(c.upper) if c.has_ub() else None
-                body  = pyo.value(c.body)
+                body = pyo.value(c.body)
                 activity = body
                 sL = (activity - lower) if lower is not None else None
                 sU = (upper - activity) if upper is not None else None
 
-                # dual value (if available)
                 dual = None
-                try:
-                    if duals is not None:
+                if duals is not None:
+                    try:
                         dual = duals[c]
-                except Exception:
-                    dual = None
+                    except Exception:
+                        dual = None
 
-                # split index
                 if key is None:
                     i, h, n, extra = None, None, None, ""
                 else:
@@ -253,24 +482,19 @@ def write_constraints_csv(model: pyo.ConcreteModel, path: str) -> str:
 
 
 def write_solution_csv(model: pyo.ConcreteModel, path: str, var_name: str = "x") -> str:
-    """
-    Convenience export for a primary allocation variable (default: 'x[i,h]').
-    Columns: item, household, value
-    Skips entries with value==0 (to keep file compact).
-    """
+    """Export a primary allocation variable (default: ``x[i, h]``)."""
+
     header = ["item", "household", "value"]
     var = getattr(model, var_name, None)
     if var is None:
-        # Nothing to export
         return _write_csv(path, header, [])
 
-    def _rows():
+    def _rows() -> ArtifactRows:
         for idx in var:
             v = var[idx]
-            val = pyo.value(v)
+            val = pyo.value(v, exception=False)
             if not val:
                 continue
-            # assume (i,h) index; tolerate scalars/tuples
             if isinstance(idx, tuple):
                 item = idx[0] if len(idx) > 0 else None
                 hh = idx[1] if len(idx) > 1 else None
@@ -281,57 +505,48 @@ def write_solution_csv(model: pyo.ConcreteModel, path: str, var_name: str = "x")
     return _write_csv(path, header, _rows())
 
 
-# ------------------------------------------------------------
-# Markdown report
-# ------------------------------------------------------------
+def write_markdown_summary(
+    path: str,
+    solver_report: Mapping[str, Any],
+    kpis: Optional[Mapping[str, Any]] = None,
+    model_stats: Optional[Mapping[str, Any]] = None,
+    title: str = "FBDAM Run Report",
+) -> str:
+    """Create a human-readable Markdown summary file."""
 
-def write_markdown_summary(path: str,
-                           solver_report: Dict[str, Any],
-                           kpis: Optional[Dict[str, Any]] = None,
-                           model_stats: Optional[Dict[str, Any]] = None,
-                           title: str = "FBDAM Run Report") -> str:
-    """
-    Create a human-readable Markdown summary file.
-    """
     kpis = kpis or {}
     model_stats = model_stats or {}
 
     lines: List[str] = []
     lines.append(f"# {title}")
-    run_id = solver_report.get("run", {}).get("id", "")
+
+    run_id = solver_report.get("run", {}).get("id")
     if run_id:
         lines.append(f"\n**Run ID:** `{run_id}`\n")
 
-    # Solver
-    s = solver_report.get("solver", {})
+    solver_section = solver_report.get("solver", {})
     lines.append("## Solver summary")
-    lines.append(f"- Solver: {s.get('name','')}")
-    lines.append(f"- Status: {s.get('status','')}")
-    lines.append(f"- Termination: {s.get('termination','')}")
-    if "obj_value" in s:
-        lines.append(f"- Objective value: {s.get('obj_value')}")
-    if "gap" in s:
-        lines.append(f"- Gap: {s.get('gap')}")
-    if "best_bound" in s:
-        lines.append(f"- Best bound: {s.get('best_bound')}")
-    wc = solver_report.get("run", {}).get("wall_clock_sec")
-    if wc is not None:
-        lines.append(f"- Wall-clock time (s): {wc}")
+    for key in ["name", "status", "termination", "elapsed_sec", "objective_value", "gap", "best_bound"]:
+        if key in solver_section:
+            pretty = key.replace("_", " ")
+            lines.append(f"- {pretty.title()}: {solver_section[key]}")
 
-    # KPIs
     if kpis:
-        lines.append("\n## KPIs")
-        lines.append("| Metric | Value |")
-        lines.append("|---|---|")
-        for k, v in (kpis.get("kpi", kpis)).items():
-            lines.append(f"| {k} | {v} |")
+        payload = kpis.get("kpi", kpis)
+        if payload:
+            lines.append("\n## KPIs")
+            lines.append("| Metric | Value |")
+            lines.append("|---|---|")
+            for key, value in payload.items():
+                lines.append(f"| {key} | {value} |")
 
-    # Model stats
     if model_stats:
         ms = model_stats.get("model", model_stats)
         lines.append("\n## Model stats")
-        lines.append(f"- Vars total: {ms.get('vars_total','')}")
-        lines.append(f"- Cons total: {ms.get('cons_total','')}")
+        for key in ["vars_total", "cons_total"]:
+            if key in ms:
+                pretty = key.replace("_", " ")
+                lines.append(f"- {pretty.title()}: {ms[key]}")
         if "vars_by_domain" in ms:
             lines.append("\n**Vars by domain**")
             for k, v in ms["vars_by_domain"].items():
@@ -345,20 +560,14 @@ def write_markdown_summary(path: str,
     return write_text(path, text)
 
 
-# ------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Index utilities
-# ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
 
 def _split_index(idx: Tuple[Any, ...]) -> Tuple[Optional[Any], Optional[Any], Optional[Any], str]:
-    """
-    Normalize an index tuple into (i, h, n, extra_repr).
+    """Normalize an index tuple into (i, h, n, extra_repr)."""
 
-    Examples:
-      () -> (None, None, None, '')
-      ('i',) -> ('i', None, None, '')
-      ('i','h') -> ('i','h', None, '')
-      ('n','h','z','extra') -> ('n','h','z', '(extra)')
-    """
     i = idx[0] if len(idx) > 0 else None
     h = idx[1] if len(idx) > 1 else None
     n = idx[2] if len(idx) > 2 else None
@@ -366,3 +575,15 @@ def _split_index(idx: Tuple[Any, ...]) -> Tuple[Optional[Any], Optional[Any], Op
     if len(idx) > 3:
         extra = "(" + ", ".join(repr(x) for x in idx[3:]) + ")"
     return i, h, n, extra
+
+
+__all__ = [
+    "write_report",
+    "build_manifest",
+    "compute_kpis",
+    "extract_model_stats",
+    "write_variables_csv",
+    "write_constraints_csv",
+    "write_solution_csv",
+    "write_markdown_summary",
+]

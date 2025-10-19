@@ -15,9 +15,10 @@ Typical usage:
 """
 
 from __future__ import annotations
-import time
 import inspect
-from typing import Any, Dict, Optional, Tuple
+import time
+from typing import Any, Dict, Iterable, Optional, Tuple
+
 import pyomo.environ as pyo
 
 
@@ -44,16 +45,16 @@ def solve_model(
     options = options or {}
     start = time.time()
 
-    solver, active_solver_name = _get_solver(solver_name, options)
+    resolved_name, solver = _select_solver(solver_name, options)
     if solver is None:
-        return _mock_solve(model, active_solver_name, time.time() - start)
+        return _mock_solve(model, resolved_name, time.time() - start)
 
     results = _invoke_solver(solver, model)
     elapsed = time.time() - start
 
     # Extract solution info
     solver_info = {
-        "solver": active_solver_name,
+        "solver": resolved_name,
         "elapsed_sec": round(elapsed, 4),
         "termination": str(results.solver.termination_condition)
         if hasattr(results, "solver") else "unknown",
@@ -78,44 +79,56 @@ def solve_model(
 # Internal helpers
 # ---------------------------------------------------------------------
 
-def _get_solver(name: str, options: Dict[str, Any]) -> Tuple[Optional[Any], str]:
-    """Return an appropriate Pyomo solver instance and the resolved solver name."""
-    name = name.lower().strip()
+def _select_solver(name: str, options: Dict[str, Any]) -> Tuple[str, Optional[Any]]:
+    """Resolve the solver name and instantiate an available backend."""
 
-    # Attempt preferred appsi_highs interface
+    normalized = name.lower().strip()
+    if normalized not in {"appsi_highs", "highs"}:
+        raise ValueError("Unsupported solver name. Use 'appsi_highs' or 'highs'.")
+
+    for candidate in _solver_resolution_order(normalized):
+        solver = _instantiate_solver(candidate, options)
+        if solver is not None:
+            return candidate, solver
+
+    return "mock", None
+
+
+def _solver_resolution_order(requested: str) -> Iterable[str]:
+    if requested == "appsi_highs":
+        return ("appsi_highs", "highs")
+    return ("highs",)
+
+
+def _instantiate_solver(name: str, options: Dict[str, Any]) -> Optional[Any]:
     if name == "appsi_highs":
         try:
             from pyomo.contrib.appsi.solvers.highs import Highs
+
             solver = Highs()
-            try:
-                is_available = bool(solver.available())
-            except TypeError:
-                # Older Pyomo versions expose ``available`` as a property
-                is_available = bool(solver.available)
-            if not is_available:
-                print("[solver] appsi_highs not available, falling back to highs CLI")
-                return _fallback_highs(options)
+            if not _is_solver_available(solver):
+                return None
             _apply_options(solver, options)
-            return solver, "appsi_highs"
+            return solver
         except ImportError:
-            print("[solver] appsi_highs unavailable, falling back to highs CLI")
-            return _fallback_highs(options)
+            return None
 
-    # Classic CLI interface
     if name == "highs":
-        return _fallback_highs(options)
+        solver = pyo.SolverFactory("highs")
+        if solver is None or not solver.available(exception_flag=False):
+            return None
+        _apply_options(solver, options)
+        return solver
 
-    raise ValueError(f"Unsupported solver name '{name}'. Use 'appsi_highs' or 'highs'.")
+    return None
 
 
-def _fallback_highs(options: Dict[str, Any]) -> Tuple[Optional[Any], str]:
-    """Fallback: use the traditional HiGHS executable interface, if available."""
-    solver = pyo.SolverFactory("highs")
-    if solver is None or not solver.available(exception_flag=False):
-        print("[solver] highs CLI not available; using mock solver")
-        return None, "mock"
-    _apply_options(solver, options)
-    return solver, "highs"
+def _is_solver_available(solver: Any) -> bool:
+    try:
+        available = solver.available()
+    except TypeError:
+        available = solver.available
+    return bool(available)
 
 
 def _apply_options(solver, options: Dict[str, Any]) -> None:

@@ -13,22 +13,16 @@ Each run creates a dedicated folder under `outputs/runs/{run_id}/` with the foll
 outputs/
 └─ runs/
    └─ {run_id}/
-      ├─ manifest.json               # index of artifacts + checksums
-      ├─ config_snapshot.yaml        # scenario snapshot (expanded)
-      ├─ domain_snapshot.json        # counts of I/N/H, bounds, requirements...
-      ├─ solver_report.json          # solver status, termination, gap, obj...
-      ├─ model_stats.json            # variables/constraints counts
-      ├─ kpis.json                   # KPIs for business/reporting
-      ├─ variables.parquet           # long table of all variables (Parquet) *
-      ├─ constraints_activity.parquet# activity/slacks by constraint (optional) *
-      ├─ variables.csv               # CSV fallback if Parquet not available
-      ├─ constraints_activity.csv    # CSV fallback (optional)
-      ├─ solution.csv                # human-oriented extract (x[i,h], totals)
-      ├─ report.md                   # markdown summary
-      ├─ run.log                     # human-readable log
-      └─ run.ndjson                  # structured JSONL log
+      ├─ manifest.json            # index of artifacts + checksums
+      ├─ config_snapshot.json     # scenario snapshot (optional)
+      ├─ solver_report.json       # solver status, termination, gap, obj...
+      ├─ model_stats.json         # variables/constraints counts
+      ├─ kpis.json                # KPIs for business/reporting
+      ├─ variables.csv            # normalized view of all decision variables
+      ├─ constraints.csv          # (optional) constraint activity/slack
+      ├─ solution.csv             # lean extract of x[i,h]
+      └─ report.md                # markdown summary
 ```
-\* Uses `pyarrow` for Parquet; if not installed, CSV fallback is written.
 
 ---
 
@@ -62,12 +56,15 @@ print("Manifest keys:", manifest.keys())
 ```
 
 ### Minimal KPIs
-If you don't pass `kpis=...`, `write_report()` will compute minimal KPIs:
-- `kpi.tnu` (total sum of u[n,h])  
-- `kpi.u_min` (minimum utility)  
-- `kpi.u_mean` (mean utility)
+If you don't pass `kpis=...`, `write_report()` computes baseline KPIs:
+- `objective_value` — lifted from the solver summary (if available)
+- `total_allocation` — sum of all `x[i,h]`
+- `avg_allocation_per_pair` — arithmetic mean of allocations
+- `mean_utility` — average `u[n,h]`
+- `items` / `households` / `nutrients` — counts derived from the domain (when provided)
 
-You can pass your own KPIs dict to override/extend.
+The returned JSON structure is `{ "kpi": {...} }`, so you can extend/override by
+merging your own metrics before calling `write_report`.
 
 ---
 
@@ -83,17 +80,18 @@ Ensure `run.py` calls `write_report(...)` with the right args.
 
 ## 4) Manifest & integrity
 
-- `manifest.json` is the single source of truth for a run.  
-- It lists all artifacts with **SHA-256** checksums and captures environment info (Python, Pyomo, platform).  
+- `manifest.json` is the single source of truth for a run.
+- It lists all artifacts with **SHA-256** checksums and echoes the solver summary.
 - Never modify runs in place; **each execution** must produce a **new** folder.
 
 Example (excerpt):
 ```json
 {
-  "run_id": "2025-10-19T12-34-56Z_01HF2...",
-  "environment": {"python": "3.11.6", "pyomo": "6.7.0", "platform": "..."},
+  "run": {"id": "fbdam-20240212T101010Z", "started_at": "2024-02-12T10:10:10Z"},
+  "solver": {"name": "highs", "status": "ok", "elapsed_sec": 0.02},
   "artifacts": [
-    {"path": "solver_report.json", "sha256": "..."}
+    {"path": "solver_report.json", "sha256": "...", "kind": "metric"},
+    {"path": "variables.csv", "sha256": "...", "kind": "table"}
   ]
 }
 ```
@@ -121,28 +119,18 @@ print("u_mean:", kpis.get("u_mean"))
 import pandas as pd
 run_dir = Path("outputs/runs/2025-10-19_demo")
 
-path = run_dir / "variables.parquet"
-if path.exists():
-    df = pd.read_parquet(path)
-else:
-    df = pd.read_csv(run_dir / "variables.csv")
-
+df = pd.read_csv(run_dir / "variables.csv")
 df.head()
 ```
-The variables table has normalized columns: `var, i, h, n, k, value, lower, upper`.
+The variables table has normalized columns: `var, i, h, n, index_extra, value, lb, ub`.
 
 ### Load constraints activity (optional)
 ```python
 import pandas as pd
 run_dir = Path("outputs/runs/2025-10-19_demo")
 
-path = run_dir / "constraints_activity.parquet"
-if path.exists():
-    dfc = pd.read_parquet(path)
-elif (run_dir / "constraints_activity.csv").exists():
-    dfc = pd.read_csv(run_dir / "constraints_activity.csv")
-else:
-    dfc = None
+path = run_dir / "constraints.csv"
+dfc = pd.read_csv(path) if path.exists() else None
 ```
 
 ---
@@ -157,10 +145,10 @@ else:
 
 ## 7) Troubleshooting
 
-- **No Parquet file**: install `pyarrow` or use the CSV fallback.  
-- **Empty variables table**: confirm the model was solved and variables exist.  
+- **Missing CSVs**: ensure the run directory was created and writing permissions exist.
+- **Empty variables table**: confirm the model was solved and variables exist.
 - **Missing solver metrics**: some backends don’t expose all fields; the report shows `null`.  
-- **Reproducibility**: always ship `config_snapshot.yaml` (expanded scenario).  
+- **Reproducibility**: always ship `config_snapshot.json` (expanded scenario).
 - **Integrity**: verify file checksums in `manifest.json`.
 
 ---
@@ -175,17 +163,17 @@ else:
 
 ## 9) API reference (key functions)
 
-- `write_report(model, solver_results, domain, cfg_snapshot, run_dir, run_id=None, kpis=None, include_constraints_activity=False)`  
+- `write_report(model=..., solver_results=..., run_dir=..., domain=None, cfg_snapshot=None, include_constraints_activity=False)`
   Generates all artifacts and returns a manifest dict.
 
-- `write_json(path, obj)` — writes JSON with UTF-8 and indentation.  
-- `write_markdown_summary(path, solver, kpis, model_stats, run_id)` — human summary.  
-- `write_variables_parquet(model, path)` — variables table to Parquet (True/False).  
-- `write_constraints_parquet(model, path)` — constraints activity to Parquet (True/False).  
-- `save_manifest(path, manifest)` — persist manifest to disk.  
-- `log_event_ndjson(path, event)` — append one event to NDJSON logs.  
-- `extract_model_stats(model)` — counts variables/constraints.  
-- `snapshot_domain(domain)` — minimal domain summary.
+- `build_manifest(context, artifacts)` — helper used internally (exposed for testing).
+- `write_json(path, obj)` — writes JSON with UTF-8 and indentation.
+- `write_markdown_summary(path, solver, kpis, model_stats, title)` — human summary.
+- `write_variables_csv(model, path)` — variables table.
+- `write_constraints_csv(model, path)` — constraint activity (requires `include_constraints_activity=True`).
+- `write_solution_csv(model, path, var_name="x")` — compact extract of the primary decision variable.
+- `extract_model_stats(model)` — counts variables/constraints.
+- `compute_kpis(model, domain, solver_report)` — baseline KPIs used by the Markdown/JSON outputs.
 
 ---
 

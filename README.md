@@ -28,7 +28,7 @@ inputs and automatically generated reports.
 ```
 
 The Typer CLI entry point lives in `src/fbdam/engine/run.py`, while
-`src/fbdam/engine/model.py`, `solver.py`, and `reporting_old.py` implement the
+`src/fbdam/engine/model.py`, `solver.py`, and `reporting.py` implement the
 core build → solve → report workflow.
 
 ## Installation
