@@ -1,0 +1,11 @@
+{
+  "kpi": {
+    "objective_value": 6.147938345864662,
+    "total_allocation": 50.0,
+    "avg_allocation_per_pair": 4.166666666666667,
+    "mean_utility": 0.683104260651629,
+    "items": 4,
+    "households": 3,
+    "nutrients": 3
+  }
+}
