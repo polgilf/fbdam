@@ -220,8 +220,8 @@ class DomainIndex:
 #     item_nutrients = {
 #         (r["item_id"], r["nutrient_id"]): ItemNutrient(**r) for r in raw["item_nutrients"]
 #     }
-#     dri = {
-#         (r["household_id"], r["nutrient_id"]): DRI(**r) for r in raw["dri"]
+#     requirements = {
+#         (r["household_id"], r["nutrient_id"]): Requirement(**r) for r in raw["requirements"]
 #     }
 #     bounds = {
 #         (r["item_id"], r["household_id"]): AllocationBounds(**r) for r in raw.get("bounds", [])
@@ -231,6 +231,6 @@ class DomainIndex:
 #         nutrients=nutrients,
 #         households=households,
 #         item_nutrients=item_nutrients,
-#         dri=dri,
+#         requirements=requirements,
 #         bounds=bounds,
 #     )
