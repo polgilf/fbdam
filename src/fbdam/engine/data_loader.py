@@ -1,80 +1,101 @@
-"""Utilities to materialize the optimization domain from CSV datasets.
+"""
+data_loader.py — CSV to DomainIndex loader
+------------------------------------------
+Responsibility:
+- Read CSV files and convert them into typed domain dataclasses.
+- Load model parameters (dials, budget, etc.) from YAML or defaults.
+- Return a DataBundle ready for model building.
 
-This module is responsible for reading the tabular inputs referenced by a
-scenario configuration (already validated/normalized by ``io.py``) and
-returning domain objects ready to be consumed by the model builder.
-
-The loader is intentionally light-weight and only depends on the standard
-library in order to keep import times small and to avoid introducing optional
-dependencies (pandas, etc.).
+Design notes:
+- Uses stdlib csv module (no pandas dependency for data loading).
+- Streaming API for memory efficiency.
+- Strong validation at load time.
 """
 
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Tuple
-import csv
 
 from fbdam.engine.domain import (
-    AllocationBounds,
     DomainIndex,
-    Household,
     Item,
-    ItemNutrient,
+    ItemId,
     Nutrient,
+    NutrientId,
+    Household,
+    HouseholdId,
     Requirement,
+    ItemNutrient,
+    AllocationBounds,
 )
 
 
+# ----------------------------- Exceptions ------------------------------------
+
+
 class DataLoaderError(RuntimeError):
-    """Raised when a dataset cannot be parsed into the domain model."""
+    """Raised when CSV loading or validation fails."""
+
+
+# ----------------------------- Data structures -------------------------------
 
 
 @dataclass(frozen=True)
 class DataBundle:
-    """Container returned by :func:`load_domain_and_params`."""
-
+    """
+    Container returned by :func:`load_domain_and_params`.
+    
+    Attributes:
+        domain: Fully populated DomainIndex (items, households, nutrients, etc.)
+        model_params: Model configuration parameters (dials, budget, epsilon, etc.)
+    """
     domain: DomainIndex
     model_params: Dict[str, Any]
+
+
+# ----------------------------- Public API ------------------------------------
 
 
 def load_domain_and_params(
     data_paths: Mapping[str, Path],
     model_section: Mapping[str, Any],
 ) -> DataBundle:
-    """Read CSV datasets and scenario parameters into domain objects.
-
-    Args:
-        data_paths: Mapping of logical dataset names to *absolute* file paths.
-        model_section: Raw ``model`` section from the scenario YAML. Only the
-            scalar parameters (dials, budget, etc.) are consumed here; the
-            constraint/objective catalogs remain untouched.
-
-    Returns:
-        :class:`DataBundle` with an assembled :class:`DomainIndex` and a
-        dictionary of model parameters.
     """
-
-    required_keys = {
-        "items_csv",
-        "nutrients_csv",
-        "households_csv",
-        "requirements_csv",
-        "item_nutrients_csv",
-        "household_item_bounds_csv",
-    }
-    missing = sorted(k for k in required_keys if k not in data_paths)
-    if missing:
-        raise DataLoaderError(f"Missing dataset paths: {', '.join(missing)}")
-
-    items = _read_items(Path(data_paths["items_csv"]))
-    nutrients = _read_nutrients(Path(data_paths["nutrients_csv"]))
-    households = _read_households(Path(data_paths["households_csv"]))
-    requirements = _read_requirements(Path(data_paths["requirements_csv"]))
-    item_nutrients = _read_item_nutrients(Path(data_paths["item_nutrients_csv"]))
-    bounds = _read_bounds(Path(data_paths["household_item_bounds_csv"]))
-
+    Load domain entities from CSVs and extract model parameters.
+    
+    Args:
+        data_paths: Dict with keys:
+                    - items (required)
+                    - nutrients (required)
+                    - households (required)
+                    - requirements (required)
+                    - item_nutrients (required)
+                    - bounds (optional)
+                    - params (optional) ← YAML with dials/budget
+        
+        model_section: Model config from scenario YAML (constraints, objectives)
+    
+    Returns:
+        DataBundle: Domain + model parameters ready for build_model()
+        
+    Raises:
+        DataLoaderError: If CSVs are malformed or missing required columns
+    """
+    
+    # 1. Load domain entities from CSVs
+    items = _load_items(data_paths.get("items"))
+    nutrients = _load_nutrients(data_paths.get("nutrients"))
+    households = _load_households(data_paths.get("households"))
+    item_nutrients = _load_item_nutrients(data_paths.get("item_nutrients"))
+    requirements = _load_requirements(data_paths.get("requirements"))
+    bounds = _load_bounds(data_paths.get("bounds"))
+    
+    # 2. Validate referential integrity
+    _validate_references(items, nutrients, households, item_nutrients, requirements, bounds)
+    
     domain = DomainIndex(
         items=items,
         nutrients=nutrients,
@@ -83,174 +104,14 @@ def load_domain_and_params(
         requirements=requirements,
         bounds=bounds,
     )
-
-    model_params = _extract_model_params(model_section)
-
+    
+    # 3. Load model parameters (dials, budget, etc.)
+    model_params = _load_model_params(data_paths.get("params"), model_section)
+    
     return DataBundle(domain=domain, model_params=model_params)
 
 
-# ---------------------------------------------------------------------------
-# CSV readers
-# ---------------------------------------------------------------------------
-
-
-def _read_items(path: Path) -> Dict[str, Item]:
-    rows = _read_csv(path, required_columns={"item_id", "name", "stock"})
-    items: Dict[str, Item] = {}
-    for row in rows:
-        item_id = row["item_id"].strip()
-        unit = row.get("unit") or None
-        metadata = _extract_metadata(row, {"item_id", "name", "unit", "stock", "cost"})
-        items[item_id] = Item(
-            item_id=item_id,
-            name=row["name"].strip(),
-            stock=_to_float(row["stock"], field="stock", context=f"item '{item_id}'"),
-            cost=_to_float(row.get("cost", 0.0) or 0.0, field="cost", context=f"item '{item_id}'"),
-            unit=unit.strip() if isinstance(unit, str) and unit.strip() else None,
-            metadata=metadata or None,
-        )
-    return items
-
-
-def _read_nutrients(path: Path) -> Dict[str, Nutrient]:
-    rows = _read_csv(path, required_columns={"nutrient_id", "name"})
-    nutrients: Dict[str, Nutrient] = {}
-    for row in rows:
-        nutrient_id = row["nutrient_id"].strip()
-        unit = row.get("unit") or None
-        metadata = _extract_metadata(row, {"nutrient_id", "name", "unit"})
-        nutrients[nutrient_id] = Nutrient(
-            nutrient_id=nutrient_id,
-            name=row["name"].strip(),
-            unit=unit.strip() if isinstance(unit, str) and unit.strip() else None,
-            metadata=metadata or None,
-        )
-    return nutrients
-
-
-def _read_households(path: Path) -> Dict[str, Household]:
-    rows = _read_csv(path, required_columns={"household_id", "name"})
-    households: Dict[str, Household] = {}
-    for row in rows:
-        household_id = row["household_id"].strip()
-        fairshare_weight_value = (
-            row.get("fairshare_weight")
-            or row.get("gamma")
-            or row.get("weight")
-            or row.get("fairshare")
-            or 1.0
-        )
-        metadata = _extract_metadata(
-            row,
-            {"household_id", "name", "gamma", "fairshare_weight", "weight", "fairshare"},
-        )
-        households[household_id] = Household(
-            household_id=household_id,
-            name=row["name"].strip(),
-            fairshare_weight=_to_float(
-                fairshare_weight_value,
-                field="fairshare_weight",
-                context=f"household '{household_id}'",
-            ),
-            group=row.get("group") or None,
-            metadata=metadata or None,
-        )
-    return households
-
-
-def _read_requirements(path: Path) -> Dict[Tuple[str, str], Requirement]:
-    rows = _read_csv(
-        path,
-        required_columns={"household_id", "nutrient_id"},
-        numeric_columns={"requirement", "amount"},
-    )
-    requirements: Dict[Tuple[str, str], Requirement] = {}
-    for row in rows:
-        household_id = row["household_id"].strip()
-        nutrient_id = row["nutrient_id"].strip()
-        amount = row.get("requirement", row.get("amount", 0.0))
-        requirements[(household_id, nutrient_id)] = Requirement(
-            household_id=household_id,
-            nutrient_id=nutrient_id,
-            amount=_to_float(
-                amount,
-                field="requirement",
-                context=f"requirement ({household_id}, {nutrient_id})",
-            ),
-        )
-    return requirements
-
-
-def _read_item_nutrients(path: Path) -> Dict[Tuple[str, str], ItemNutrient]:
-    rows = _read_csv(
-        path,
-        required_columns={"item_id", "nutrient_id", "qty_per_unit"},
-    )
-    contents: Dict[Tuple[str, str], ItemNutrient] = {}
-    for row in rows:
-        item_id = row["item_id"].strip()
-        nutrient_id = row["nutrient_id"].strip()
-        qty = _to_float(
-            row["qty_per_unit"],
-            field="qty_per_unit",
-            context=f"item nutrient ({item_id}, {nutrient_id})",
-        )
-        contents[(item_id, nutrient_id)] = ItemNutrient(
-            item_id=item_id,
-            nutrient_id=nutrient_id,
-            qty_per_unit=qty,
-        )
-    return contents
-
-
-def _read_bounds(path: Path) -> Dict[Tuple[str, str], AllocationBounds]:
-    rows = _read_csv(path, required_columns={"household_id", "item_id"})
-    bounds: Dict[Tuple[str, str], AllocationBounds] = {}
-    for row in rows:
-        household_id = row["household_id"].strip()
-        item_id = row["item_id"].strip()
-        lower = _optional_float(row.get("lower"), default=0.0)
-        upper = _optional_float(row.get("upper"), default=None)
-        bounds[(item_id, household_id)] = AllocationBounds(
-            item_id=item_id,
-            household_id=household_id,
-            lower=lower,
-            upper=upper,
-        )
-    return bounds
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _extract_model_params(model_section: Mapping[str, Any]) -> Dict[str, Any]:
-    if not isinstance(model_section, Mapping):
-        model_section = {}
-
-    params: Dict[str, Any] = {}
-
-    dials = model_section.get("dials", {}) if model_section else {}
-    if dials:
-        if not isinstance(dials, Mapping):
-            raise DataLoaderError("model.dials must be a mapping")
-        params["dials"] = {k: _to_float(v, field=k, context="model.dials") for k, v in dials.items()}
-    else:
-        params["dials"] = {}
-
-    if "budget" in model_section:
-        params["budget"] = _to_float(
-            model_section.get("budget", 0.0),
-            field="budget",
-            context="model",
-        )
-
-    for key in ("lambda", "lambda_", "lam" ):
-        if key in model_section:
-            params[key] = _to_float(model_section[key], field=key, context="model")
-
-    return params
+# ----------------------------- CSV reading utilities -------------------------
 
 
 def _read_csv(
@@ -259,53 +120,279 @@ def _read_csv(
     required_columns: Iterable[str],
     numeric_columns: Iterable[str] | None = None,
 ) -> Iterable[Dict[str, Any]]:
+    """
+    Read CSV file and yield rows as dicts with basic validation and type coercion.
+    
+    Args:
+        path: Path to CSV file
+        required_columns: Columns that must exist (raises if missing)
+        numeric_columns: Columns to coerce to float (optional)
+    
+    Yields:
+        Dict[str, Any]: Row with string keys and coerced values
+        
+    Raises:
+        DataLoaderError: If file not found or columns missing
+    """
     if not path.is_file():
         raise DataLoaderError(f"Dataset not found: {path}")
-
+    
+    numeric_cols = set(numeric_columns or [])
+    required_cols = set(required_columns)
+    
     with path.open("r", encoding="utf-8", newline="") as fh:
         reader = csv.DictReader(fh)
-        header = set(reader.fieldnames or [])
-        missing = sorted(set(required_columns) - header)
+        
+        # Validate header
+        if reader.fieldnames is None:
+            raise DataLoaderError(f"{path.name}: Empty or malformed CSV (no header)")
+        
+        found_cols = set(reader.fieldnames)
+        missing = required_cols - found_cols
         if missing:
             raise DataLoaderError(
-                f"CSV {path.name} missing required columns: {', '.join(missing)}"
+                f"{path.name}: Missing required columns: {missing}. "
+                f"Found: {found_cols}"
             )
+        
+        # Yield rows with type coercion
+        for row_num, row in enumerate(reader, start=2):  # start=2 (header is row 1)
+            # Coerce numeric columns
+            for col in numeric_cols:
+                if col in row and row[col]:
+                    try:
+                        row[col] = float(row[col])
+                    except ValueError as e:
+                        raise DataLoaderError(
+                            f"{path.name}:{row_num}: Cannot convert '{col}'='{row[col]}' to float"
+                        ) from e
+            yield row
 
-        numeric_columns = set(numeric_columns or [])
 
-        rows = []
-        for row in reader:
-            # Normalize numeric columns eagerly if present
-            for col in numeric_columns:
-                if col in row and row[col] == "":
-                    row[col] = None
-            rows.append(row)
-    return rows
+# ----------------------------- Loaders per entity ----------------------------
 
 
-def _extract_metadata(row: Mapping[str, Any], known_columns: Iterable[str]) -> Dict[str, Any]:
-    known = set(known_columns)
-    metadata = {
-        key: value
-        for key, value in row.items()
-        if key not in known and value not in (None, "")
+def _load_items(path: Path | None) -> Dict[ItemId, Item]:
+    """Load items from CSV."""
+    if not path:
+        raise DataLoaderError("Missing 'items' path in data_paths")
+    
+    items = {}
+    for row in _read_csv(
+        path,
+        required_columns=["item_id", "name", "stock"],
+        numeric_columns=["stock", "cost"],
+    ):
+        item_id = str(row["item_id"])
+        items[item_id] = Item(
+            item_id=item_id,
+            name=str(row["name"]),
+            stock=float(row["stock"]),
+            cost=float(row.get("cost") or 0.0),
+            unit=str(row.get("unit") or "") or None,
+        )
+    
+    return items
+
+
+def _load_nutrients(path: Path | None) -> Dict[NutrientId, Nutrient]:
+    """Load nutrients from CSV."""
+    if not path:
+        raise DataLoaderError("Missing 'nutrients' path in data_paths")
+    
+    nutrients = {}
+    for row in _read_csv(
+        path,
+        required_columns=["nutrient_id", "name"],
+        numeric_columns=[],
+    ):
+        nutrient_id = str(row["nutrient_id"])
+        nutrients[nutrient_id] = Nutrient(
+            nutrient_id=nutrient_id,
+            name=str(row["name"]),
+            unit=str(row.get("unit") or "") or None,
+        )
+    
+    return nutrients
+
+
+def _load_households(path: Path | None) -> Dict[HouseholdId, Household]:
+    """Load households from CSV."""
+    if not path:
+        raise DataLoaderError("Missing 'households' path in data_paths")
+    
+    households = {}
+    for row in _read_csv(
+        path,
+        required_columns=["household_id", "name"],
+        numeric_columns=["fairshare_weight"],
+    ):
+        household_id = str(row["household_id"])
+        households[household_id] = Household(
+            household_id=household_id,
+            name=str(row["name"]),
+            fairshare_weight=float(row.get("fairshare_weight") or 1.0),
+        )
+    
+    return households
+
+
+def _load_item_nutrients(path: Path | None) -> Dict[Tuple[ItemId, NutrientId], ItemNutrient]:
+    """Load item-nutrient content matrix from CSV."""
+    if not path:
+        raise DataLoaderError("Missing 'item_nutrients' path in data_paths")
+    
+    item_nutrients = {}
+    for row in _read_csv(
+        path,
+        required_columns=["item_id", "nutrient_id", "qty_per_unit"],
+        numeric_columns=["qty_per_unit"],
+    ):
+        key = (str(row["item_id"]), str(row["nutrient_id"]))
+        item_nutrients[key] = ItemNutrient(
+            item_id=str(row["item_id"]),
+            nutrient_id=str(row["nutrient_id"]),
+            qty_per_unit=float(row["qty_per_unit"]),
+        )
+    
+    return item_nutrients
+
+
+def _load_requirements(path: Path | None) -> Dict[Tuple[HouseholdId, NutrientId], Requirement]:
+    """Load household-nutrient requirements from CSV."""
+    if not path:
+        raise DataLoaderError("Missing 'requirements' path in data_paths")
+    
+    requirements = {}
+    for row in _read_csv(
+        path,
+        required_columns=["household_id", "nutrient_id", "requirement"],
+        numeric_columns=["requirement"],
+    ):
+        key = (str(row["household_id"]), str(row["nutrient_id"]))
+        requirements[key] = Requirement(
+            household_id=str(row["household_id"]),
+            nutrient_id=str(row["nutrient_id"]),
+            amount=float(row["requirement"]),
+        )
+    
+    return requirements
+
+
+def _load_bounds(path: Path | None) -> Dict[Tuple[ItemId, HouseholdId], AllocationBounds]:
+    """Load allocation bounds from CSV (optional)."""
+    if not path or not path.exists():
+        return {}
+    
+    bounds = {}
+    for row in _read_csv(
+        path,
+        required_columns=["item_id", "household_id"],
+        numeric_columns=["lower", "upper"],
+    ):
+        key = (str(row["item_id"]), str(row["household_id"]))
+        
+        # Handle optional upper bound
+        upper_val = row.get("upper")
+        upper = float(upper_val) if upper_val not in (None, "", "None") else None
+        
+        bounds[key] = AllocationBounds(
+            item_id=str(row["item_id"]),
+            household_id=str(row["household_id"]),
+            lb=float(row.get("lower") or 0.0),
+            ub=upper,
+        )
+    
+    return bounds
+
+
+# ----------------------------- Model parameters ------------------------------
+
+
+def _load_model_params(params_path: Path | None, model_section: Mapping[str, Any]) -> Dict[str, Any]:
+    """
+    Load model parameters (dials, budget, etc.) from optional YAML file.
+    
+    Priority:
+    1. params.yaml (if exists)
+    2. Defaults from model_section (constraints params)
+    3. Hard-coded defaults
+    
+    Returns:
+        Dict with keys: budget, lambda_penalty, alpha, beta, gamma, kappa, rho, omega
+    """
+    import yaml
+    
+    # Start with defaults
+    params = {
+        "budget": None,               # No budget constraint by default
+        "lambda_penalty": 0.0,        # No epsilon penalty by default
+        "alpha": 0.5,                 # Item-level deviation cap
+        "beta": 0.5,                  # Household-level deviation cap
+        "gamma": 0.8,                 # Per-nutrient floor
+        "kappa": 0.8,                 # Per-pair floor
+        "rho": 0.5,                   # Per-pair deviation cap
+        "omega": 0.8,                 # Per-household floor (aggregate over nutrients)
     }
-    return metadata
+    
+    # Load from params.yaml if exists
+    if params_path and params_path.exists():
+        with open(params_path, "r") as f:
+            file_params = yaml.safe_load(f) or {}
+        params.update(file_params)
+    
+    # Override with constraint-level params from model_section
+    for c in model_section.get("constraints", []):
+        if "params" in c:
+            params.update(c["params"])
+    
+    return params
 
 
-def _to_float(value: Any, *, field: str, context: str) -> float:
-    try:
-        if value is None or value == "":
-            return 0.0
-        return float(value)
-    except (TypeError, ValueError) as exc:
-        raise DataLoaderError(
-            f"Cannot parse field '{field}' in {context} as float (value={value!r})."
-        ) from exc
+# ----------------------------- Validation ------------------------------------
 
 
-def _optional_float(value: Any, *, default: float | None) -> float | None:
-    if value in (None, ""):
-        return default
-    return _to_float(value, field="value", context="bounds")
-
+def _validate_references(
+    items: Dict[ItemId, Item],
+    nutrients: Dict[NutrientId, Nutrient],
+    households: Dict[HouseholdId, Household],
+    item_nutrients: Dict[Tuple[ItemId, NutrientId], ItemNutrient],
+    requirements: Dict[Tuple[HouseholdId, NutrientId], Requirement],
+    bounds: Dict[Tuple[ItemId, HouseholdId], AllocationBounds],
+) -> None:
+    """
+    Validate referential integrity across loaded entities.
+    """
+    
+    # Check item_nutrients
+    for (item_id, nutrient_id), _ in item_nutrients.items():
+        if item_id not in items:
+            raise DataLoaderError(
+                f"item_nutrients references unknown item_id='{item_id}'"
+            )
+        if nutrient_id not in nutrients:
+            raise DataLoaderError(
+                f"item_nutrients references unknown nutrient_id='{nutrient_id}'"
+            )
+    
+    # Check requirements
+    for (household_id, nutrient_id), _ in requirements.items():
+        if household_id not in households:
+            raise DataLoaderError(
+                f"requirements references unknown household_id='{household_id}'"
+            )
+        if nutrient_id not in nutrients:
+            raise DataLoaderError(
+                f"requirements references unknown nutrient_id='{nutrient_id}'"
+            )
+    
+    # Check bounds
+    for (item_id, household_id), _ in bounds.items():
+        if item_id not in items:
+            raise DataLoaderError(
+                f"bounds references unknown item_id='{item_id}'"
+            )
+        if household_id not in households:
+            raise DataLoaderError(
+                f"bounds references unknown household_id='{household_id}'"
+            )
