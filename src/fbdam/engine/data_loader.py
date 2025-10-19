@@ -56,6 +56,15 @@ class DataBundle:
     model_params: Dict[str, Any]
 
 
+def _resolve_data_path(data_paths: Mapping[str, Path], *aliases: str) -> Path | None:
+    """Return the first available dataset path matching the provided aliases."""
+    for key in aliases:
+        path = data_paths.get(key)
+        if path:
+            return path
+    return None
+
+
 # ----------------------------- Public API ------------------------------------
 
 
@@ -86,12 +95,23 @@ def load_domain_and_params(
     """
     
     # 1. Load domain entities from CSVs
-    items = _load_items(data_paths.get("items"))
-    nutrients = _load_nutrients(data_paths.get("nutrients"))
-    households = _load_households(data_paths.get("households"))
-    item_nutrients = _load_item_nutrients(data_paths.get("item_nutrients"))
-    requirements = _load_requirements(data_paths.get("requirements"))
-    bounds = _load_bounds(data_paths.get("bounds"))
+    items = _load_items(_resolve_data_path(data_paths, "items", "items_csv"))
+    nutrients = _load_nutrients(_resolve_data_path(data_paths, "nutrients", "nutrients_csv"))
+    households = _load_households(_resolve_data_path(data_paths, "households", "households_csv"))
+    item_nutrients = _load_item_nutrients(
+        _resolve_data_path(data_paths, "item_nutrients", "item_nutrients_csv")
+    )
+    requirements = _load_requirements(
+        _resolve_data_path(data_paths, "requirements", "requirements_csv")
+    )
+    bounds = _load_bounds(
+        _resolve_data_path(
+            data_paths,
+            "bounds",
+            "household_item_bounds",
+            "household_item_bounds_csv",
+        )
+    )
     
     # 2. Validate referential integrity
     _validate_references(items, nutrients, households, item_nutrients, requirements, bounds)
@@ -106,7 +126,10 @@ def load_domain_and_params(
     )
     
     # 3. Load model parameters (dials, budget, etc.)
-    model_params = _load_model_params(data_paths.get("params"), model_section)
+    model_params = _load_model_params(
+        _resolve_data_path(data_paths, "params", "params_yaml"),
+        model_section,
+    )
     
     return DataBundle(domain=domain, model_params=model_params)
 
@@ -299,8 +322,8 @@ def _load_bounds(path: Path | None) -> Dict[Tuple[ItemId, HouseholdId], Allocati
         bounds[key] = AllocationBounds(
             item_id=str(row["item_id"]),
             household_id=str(row["household_id"]),
-            lb=float(row.get("lower") or 0.0),
-            ub=upper,
+            lower=float(row.get("lower") or 0.0),
+            upper=upper,
         )
     
     return bounds
@@ -311,41 +334,60 @@ def _load_bounds(path: Path | None) -> Dict[Tuple[ItemId, HouseholdId], Allocati
 
 def _load_model_params(params_path: Path | None, model_section: Mapping[str, Any]) -> Dict[str, Any]:
     """
-    Load model parameters (dials, budget, etc.) from optional YAML file.
-    
+    Load model parameters (dials, budget, etc.) from optional YAML file and
+    merge them with the scenario's ``model`` section.
+
     Priority:
     1. params.yaml (if exists)
-    2. Defaults from model_section (constraints params)
-    3. Hard-coded defaults
-    
+    2. Scenario overrides (model.dials, model.budget, model.lambda, model.params)
+
     Returns:
-        Dict with keys: budget, lambda_penalty, alpha, beta, gamma, kappa, rho, omega
+        Dict with consolidated parameters (budget, lambda, dials, ...)
     """
     import yaml
     
-    # Start with defaults
-    params = {
-        "budget": None,               # No budget constraint by default
-        "lambda_penalty": 0.0,        # No epsilon penalty by default
-        "alpha": 0.5,                 # Item-level deviation cap
-        "beta": 0.5,                  # Household-level deviation cap
-        "gamma": 0.8,                 # Per-nutrient floor
-        "kappa": 0.8,                 # Per-pair floor
-        "rho": 0.5,                   # Per-pair deviation cap
-        "omega": 0.8,                 # Per-household floor (aggregate over nutrients)
-    }
-    
+    params: Dict[str, Any] = {}
+    file_params: Dict[str, Any] = {}
+
     # Load from params.yaml if exists
     if params_path and params_path.exists():
-        with open(params_path, "r") as f:
-            file_params = yaml.safe_load(f) or {}
+        with open(params_path, "r", encoding="utf-8") as f:
+            loaded = yaml.safe_load(f) or {}
+        if not isinstance(loaded, dict):
+            raise DataLoaderError("params.yaml must be a mapping of keys → values")
+        file_params = loaded
         params.update(file_params)
-    
-    # Override with constraint-level params from model_section
-    for c in model_section.get("constraints", []):
-        if "params" in c:
-            params.update(c["params"])
-    
+
+    # Merge scenario-level dials (model.dials)
+    merged_dials: Dict[str, Any] = {}
+    dials_from_file = file_params.get("dials")
+    if isinstance(dials_from_file, Mapping):
+        merged_dials.update(dials_from_file)
+    dials_from_scenario = model_section.get("dials", {})
+    if isinstance(dials_from_scenario, Mapping):
+        merged_dials.update(dials_from_scenario)
+    params["dials"] = merged_dials
+
+    # Budget and lambda priorities: scenario overrides file, defaults to None
+    if "budget" in model_section:
+        params["budget"] = model_section.get("budget")
+    else:
+        params.setdefault("budget", None)
+
+    if "lambda" in model_section:
+        params["lambda"] = model_section.get("lambda")
+    else:
+        params.setdefault("lambda", params.get("lambda_penalty"))
+
+    # Keep compatibility alias if only "lambda" provided
+    if "lambda_penalty" not in params and params.get("lambda") is not None:
+        params["lambda_penalty"] = params["lambda"]
+
+    # Surface any nested "params" dict in model_section for convenience
+    params_block = model_section.get("params", {})
+    if isinstance(params_block, Mapping):
+        params.update(params_block)
+
     return params
 
 

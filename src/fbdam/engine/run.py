@@ -20,6 +20,7 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 from datetime import datetime, timezone
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -41,6 +42,38 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _generate_run_id(scenario_path: Path, started_at: datetime) -> str:
+    """Create a filesystem-friendly run identifier."""
+    stem = scenario_path.stem or "run"
+    slug_chars = []
+    for ch in stem.lower():
+        if ch.isalnum() or ch in {"-", "_"}:
+            slug_chars.append(ch)
+        else:
+            slug_chars.append("-")
+    slug = "".join(slug_chars).strip("-_") or "run"
+    timestamp = started_at.strftime("%Y%m%dT%H%M%SZ")
+    return f"{timestamp}_{slug}"
+
+
+def _snapshot_config(raw_cfg: dict, scenario_path: Path, run_id: str) -> dict:
+    """Build a serializable snapshot of the run configuration."""
+    snapshot = dict(raw_cfg)
+    snapshot.setdefault("metadata", {})
+    if isinstance(snapshot["metadata"], dict):
+        snapshot["metadata"] = dict(snapshot["metadata"])
+    else:
+        snapshot["metadata"] = {"original": snapshot["metadata"]}
+    snapshot["metadata"].update(
+        {
+            "scenario_path": str(scenario_path),
+            "generated_at": _utc_now_iso().replace("+00:00", "Z"),
+            "run_id": run_id,
+        }
+    )
+    return snapshot
+
+
 @app.callback()
 def main_callback() -> None:
     """Global options (extend in the future if needed)."""
@@ -60,10 +93,10 @@ def run(
         help="Path to the scenario YAML file.",
     ),
     outputs: Path = typer.Option(
-        Path("outputs"),
+        Path("outputs") / "runs",
         "--outputs",
         "-o",
-        help="Output directory where reports and artifacts will be written.",
+        help="Directory where run folders will be created (defaults to outputs/runs).",
     ),
     solver: str = typer.Option(
         None,
@@ -71,11 +104,22 @@ def run(
         help="Optional solver name override (e.g., 'appsi_highs' or 'highs'). "
              "If omitted, the scenario's solver.name is used.",
     ),
+    run_id: Optional[str] = typer.Option(
+        None,
+        "--run-id",
+        help="Optional run identifier to name the run folder. If omitted, a timestamp-based id is used.",
+    ),
+    include_constraints_activity: bool = typer.Option(
+        False,
+        "--constraints-activity/--no-constraints-activity",
+        help="Export constraint activity/slacks tables (may be slow).",
+    ),
 ) -> None:
     """
     Execute the full pipeline: load → build → solve → report.
     """
-    t0 = _utc_now_iso()
+    started_at = datetime.now(timezone.utc)
+    t0 = started_at.isoformat(timespec="seconds")
     console.print(Panel.fit(f"[bold cyan]FBDAM pipeline started[/]  [dim]{t0} UTC[/]"))
 
     try:
@@ -95,11 +139,37 @@ def run(
         results = solve_model(model, solver_name=cfg.solver.name, options=cfg.solver.options)
 
         # 4) Reporting
-        outputs = outputs.resolve()
-        outputs.mkdir(parents=True, exist_ok=True)
-        write_report(results, outputs)
+        outputs_root = outputs.expanduser().resolve()
+        run_identifier = run_id or _generate_run_id(scenario, started_at)
+        run_dir = outputs_root / run_identifier
+        run_dir.mkdir(parents=True, exist_ok=True)
 
-        console.print(Panel.fit(f"[bold green]Pipeline finished successfully[/] → {outputs}"))
+        cfg_snapshot = _snapshot_config(cfg.raw, scenario, run_identifier)
+        manifest = write_report(
+            model=model,
+            solver_results=results,
+            domain=cfg.domain,
+            cfg_snapshot=cfg_snapshot,
+            run_dir=run_dir,
+            run_id=run_identifier,
+            include_constraints_activity=include_constraints_activity,
+        )
+
+        manifest_path = run_dir / "manifest.json"
+        console.print(
+            Panel.fit(
+                "\n".join(
+                    [
+                        "[bold green]Pipeline finished successfully[/]",
+                        f"Run ID: [bold]{run_identifier}[/]",
+                        f"Artifacts dir: {run_dir}",
+                        f"Manifest entries: {len(manifest.get('artifacts', []))}",
+                        f"Manifest path: {manifest_path}",
+                    ]
+                ),
+                border_style="green",
+            )
+        )
     except IOConfigError as e:
         console.print(Panel.fit(f"[bold red]Scenario/IO error[/]\n{e}", border_style="red"))
         raise typer.Exit(code=2)
