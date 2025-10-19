@@ -31,7 +31,7 @@ from rich.traceback import install as rich_traceback
 from fbdam.engine.io import load_scenario, IOConfigError
 from fbdam.engine.model import build_model  # stub function is fine initially
 from fbdam.engine.solver import solve_model  # stub function is fine initially
-from fbdam.engine.reporting_old import write_report  # stub function is fine initially
+from fbdam.engine.reporting import write_report  # stub function is fine initially
 
 app = typer.Typer(add_completion=False, help="FBDAM — minimal optimization system")
 console = Console()
