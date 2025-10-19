@@ -110,7 +110,7 @@ def obj_sum_utility(m: pyo.ConcreteModel, params: dict, sense: Optional[str] = "
     if hasattr(m, "total_utility"):
         utility_expr = m.total_utility
     else:
-        utility_expr = sum(m.u[n, h] for n in m.N for h in m.H)
+        utility_expr = (1/m.cardH)*(1/m.cardN)*sum(m.u[n, h] for n in m.N for h in m.H)
 
     expr = weight * utility_expr
 
