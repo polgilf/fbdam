@@ -137,19 +137,29 @@ def run(
             new_raw = cfg.raw | {"solver": {"name": solver, "options": cfg.solver.options}}
             cfg = replace(cfg, solver=new_solver, raw=new_raw)
 
-        # 2) Build model (Pyomo)
-        model = build_model(cfg)  # can be a stub returning a sentinel for now
-
-        # 3) Solve model
-        results = solve_model(model, solver_name=cfg.solver.name, options=cfg.solver.options)
-
-        # 4) Reporting
         outputs_root = outputs.expanduser().resolve()
         run_identifier = run_id or _generate_run_id(scenario, started_at)
         run_dir = outputs_root / run_identifier
         run_dir.mkdir(parents=True, exist_ok=True)
 
         cfg_snapshot = _snapshot_config(cfg.raw, scenario, run_identifier)
+
+        solver_options = dict(cfg.solver.options or {})
+        log_relative_path = None
+        log_file = solver_options.get("log_file")
+        if log_file:
+            log_path = run_dir / Path(str(log_file)).name
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            solver_options["log_file"] = str(log_path)
+            log_relative_path = log_path.relative_to(run_dir)
+
+        # 2) Build model (Pyomo)
+        model = build_model(cfg)  # can be a stub returning a sentinel for now
+
+        # 3) Solve model
+        results = solve_model(model, solver_name=cfg.solver.name, options=solver_options)
+
+        # 4) Reporting
         manifest = write_report(
             model=model,
             solver_results=results,
@@ -158,6 +168,7 @@ def run(
             run_dir=run_dir,
             run_id=run_identifier,
             include_constraints_activity=include_constraints_activity,
+            solver_log_relative_path=str(log_relative_path) if log_relative_path else None,
         )
 
         manifest_path = run_dir / "manifest.json"
