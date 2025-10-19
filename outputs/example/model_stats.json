@@ -1,0 +1,20 @@
+{
+  "model": {
+    "vars_total": 1234,
+    "vars_by_domain": {
+      "x[i,h]": 200,
+      "u[n,h]": 60,
+      "dpos[i,h]": 200,
+      "dneg[i,h]": 200
+    },
+    "vars_by_type": {
+      "Continuous": 1234
+    },
+    "cons_total": 4567,
+    "cons_by_block": {
+      "U_link": 120,
+      "HHFloor": 20,
+      "FairCapHouse": 40
+    }
+  }
+}

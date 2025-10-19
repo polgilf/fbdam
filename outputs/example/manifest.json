@@ -1,0 +1,52 @@
+{
+  "run_id": "2025-10-19T11-20-56Z_4f46a761",
+  "started_at": "2025-10-19T12:34:56Z",
+  "finished_at": "2025-10-19T12:34:58Z",
+  "environment": {
+    "python": "3.11.6",
+    "pyomo": "6.7.0",
+    "solver": "appsi_highs"
+  },
+  "artifacts": [
+    {
+      "path": "config_snapshot.yaml",
+      "sha256": "15bee32cc75e73f6b272bf44fd47a695a022cbb933b1202c2ad63ef952ecf96e"
+    },
+    {
+      "path": "domain_snapshot.json",
+      "sha256": "cc5449a9dbd9ef50fb07dd83c3df330fe82e6b7d2a8f1c1c6c460519493f6b59"
+    },
+    {
+      "path": "solver_report.json",
+      "sha256": "36bbe279116c1bdf8094e5cef94e84f44b4c6751291be56ebe431e6f26e4f58b"
+    },
+    {
+      "path": "model_stats.json",
+      "sha256": "8009a8d6d302fee5397feb6a66f91bbbf86836e08c94d3ed3c29bda9c303a07e"
+    },
+    {
+      "path": "kpis.json",
+      "sha256": "d0cb277fb0d28864d6e1b4a29e9e7a3e4e9e240f5095b081f9809cbd2a94f4da"
+    },
+    {
+      "path": "variables.csv",
+      "sha256": "47634ff99460fe9bfe7c298937f3fc7d77f8bc83ebd56150321d554f2a0a5074"
+    },
+    {
+      "path": "solution.csv",
+      "sha256": "bb6cae3b04f0da3b396741d8c677909aebe3ac614043dd7263ab5007b521949a"
+    },
+    {
+      "path": "report.md",
+      "sha256": "1c6c8ea2bd0bdd4f1c71c50073e7820cf36efd289617e093de13e5fda6a939e1"
+    },
+    {
+      "path": "run.log",
+      "sha256": "2a2b2352793ed112e78d8e4a2e10ebb0e60e5c764ed51bf471c88f592d9759b2"
+    },
+    {
+      "path": "run.ndjson",
+      "sha256": "e3605ddc938a75e2daa389e1f7dad71f2c3a09b0defb4fa78c40130762a758fe"
+    }
+  ]
+}

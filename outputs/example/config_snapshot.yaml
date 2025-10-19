@@ -1,0 +1,13 @@
+version: v1.0
+scenario: demo-balanced
+solver: appsi_highs
+options:
+  time_limit: 10
+model:
+  constraints:
+    - type: u_link
+      params: {}
+  objectives:
+    - name: sum_utility
+      sense: maximize
+      params: {}
