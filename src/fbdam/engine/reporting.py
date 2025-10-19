@@ -51,6 +51,7 @@ class ReportingContext:
     domain: DomainIndex | None
     run_id: str
     run_started_at: str
+    solver_log_relative_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -122,6 +123,7 @@ def write_report(
     include_constraints_activity: bool = False,
     export_mps: bool = True,
     title: str = "FBDAM Run Report",
+    solver_log_relative_path: str | None = None,
 ) -> Dict[str, Any]:
     """Generate reporting artifacts for a solved model.
 
@@ -173,6 +175,7 @@ def write_report(
         domain=domain,
         run_id=resolved_run_id,
         run_started_at=run_started_at,
+        solver_log_relative_path=solver_log_relative_path,
     )
 
     artifact_specs = _build_artifact_plan(context, include_constraints_activity, export_mps, title)
@@ -247,7 +250,16 @@ def _build_artifact_plan(
     if export_mps:
         specs.append(ArtifactSpec("model.mps", "model", _write_model_mps_artifact))
 
+    if context.solver_log_relative_path:
+        specs.append(ArtifactSpec(context.solver_log_relative_path, "log", _register_existing_artifact))
+
     return specs
+
+
+def _register_existing_artifact(context: ReportingContext, path: str) -> str:
+    if not os.path.exists(path):
+        raise FileNotFoundError(path)
+    return sha256_file(path)
 
 
 def _write_solver_report(context: ReportingContext, path: str) -> str:
