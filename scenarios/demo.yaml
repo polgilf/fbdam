@@ -22,7 +22,14 @@ model:
     - ref: stock_balance
     - ref: purchase_budget
       override:
-        budget: 100
+        budget: 10
+    - ref: deviation_pair_cap
+      override:
+        rho: 0
+    - ref: pair_floor
+      override:
+        kappa: 1
+        
   objectives:
     - ref: sum_utility
 
