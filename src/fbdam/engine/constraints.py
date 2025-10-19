@@ -89,27 +89,31 @@ def _get_dial_value(
     model: pyo.ConcreteModel,
     params: Mapping[str, Any],
     name: str,
-    default: float = 0.0
+    index: Any | None = None,
+    default: float | None = 0.0,
 ) -> float:
     """
     Resolve dial value with clear priority:
     1. Constraint-level params[name]
     2. Model-level model.model_params['dials'][name]
     3. Provided default
+
+    Supports scalar dials and indexed mappings (including tuple indices)
+    through the ``index`` argument.
     
     Raises ValueError if not found and no default.
     """
     # Priority 1: constraint params
     if name in params:
-        return float(params[name])
+        return _materialise_dial_value(params[name], index, default)
     
     # Priority 2: model dials
     model_params = getattr(model, "model_params", {})
     if isinstance(model_params, Mapping):
         dials = model_params.get("dials", {})
         if isinstance(dials, Mapping) and name in dials:
-            return float(dials[name])
-    
+            return _materialise_dial_value(dials[name], index, default)
+
     # Priority 3: default
     if default is not None:
         return float(default)
