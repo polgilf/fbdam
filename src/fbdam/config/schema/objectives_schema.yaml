@@ -1,0 +1,58 @@
+# objectives_schema.yaml
+# JSON Schema (YAML) for objectives catalog files
+# ---------------------------------------------------------
+# Valida archivos tipo: objectives_vX.Y.yaml
+# - version, status
+# - objectives: lista de objetivos (id, name, sense, params)
+# ---------------------------------------------------------
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: FBDAM Objectives Catalog
+type: object
+required: [version, status, objectives]
+properties:
+  version:
+    type: string
+    pattern: "^v\\d+\\.\\d+$"
+  status:
+    type: string
+    enum: [draft, validated, archived]
+  maintainer:
+    type: string
+  objectives:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [id, name, sense, params]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Stable, snake_case identifier"
+        name:
+          type: string
+          description: "Objective handler name in code registry"
+          enum:
+            - sum_utility
+            - min_utility
+            - cost
+            - lex_sum_then_min
+        sense:
+          type: string
+          enum: [maximize, minimize]
+        description:
+          type: string
+        uri:
+          type: string
+          format: uri
+        params:
+          type: object
+          additionalProperties:
+            anyOf:
+              - type: string
+              - type: number
+              - type: boolean
+              - type: array
+              - type: object

@@ -1,0 +1,20 @@
+# constraints_v1.0.yaml
+# Catalog of constraint templates for FBDAM v1.0
+# ---------------------------------------------------------
+# - Define bloques de restricciones reutilizables por ID
+# - Cada bloque tiene: id, type (handler en código), params
+# - Se referencian desde escenarios vía: constraints: [{ref: <id>}]
+# - Los params pueden sobrescribirse con "override" en el escenario
+# ---------------------------------------------------------
+
+version: v1.0
+status: validated
+maintainer: pol_gil
+
+constraints:
+  - id: util_link
+    type: u_link
+    description: >
+      Vincula utilidad con cantidad y requerimiento:
+      u[n,h] <= q[n,h] / R[h,n]
+    params: {}

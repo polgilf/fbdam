@@ -1,0 +1,18 @@
+# objectives_v1.0.yaml
+# Catalog of objective templates for FBDAM v1.0
+# ---------------------------------------------------------
+# - Define funciones objetivo reutilizables (por ID)
+# - name/type referencia el "plugin" en código
+# - "sense" controla maximize/minimize
+# ---------------------------------------------------------
+
+version: v1.0
+status: validated
+maintainer: pol_gil
+
+objectives:
+  - id: sum_utility
+    name: sum_utility
+    sense: maximize
+    description: "Maximiza la suma de utilidades u[n,h] en todo N×H"
+    params: {}
