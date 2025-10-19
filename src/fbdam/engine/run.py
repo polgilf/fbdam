@@ -17,6 +17,7 @@ This is a minimal, production-ready skeleton:
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -83,13 +84,9 @@ def run(
 
         # Optional solver override
         if solver:
-            cfg = type(cfg)(
-                data_paths=cfg.data_paths,
-                constraints=cfg.constraints,
-                objectives=cfg.objectives,
-                solver=type(cfg.solver)(name=solver, options=cfg.solver.options),
-                raw=cfg.raw | {"solver": {"name": solver, "options": cfg.solver.options}},
-            )
+            new_solver = type(cfg.solver)(name=solver, options=cfg.solver.options)
+            new_raw = cfg.raw | {"solver": {"name": solver, "options": cfg.solver.options}}
+            cfg = replace(cfg, solver=new_solver, raw=new_raw)
 
         # 2) Build model (Pyomo)
         model = build_model(cfg)  # can be a stub returning a sentinel for now

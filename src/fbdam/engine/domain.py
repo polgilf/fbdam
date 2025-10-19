@@ -76,12 +76,12 @@ class Nutrient:
 class Household:
     """
     A demand recipient (e.g., a family, household, or beneficiary unit).
-    - gamma: weight/size factor used in fairness or scaling constraints (>= 0)
+    - fairshare_weight: proportional weight used in fairness constraints (>= 0)
     - group: optional bucket label (e.g., region or vulnerability group)
     """
     household_id: HouseholdId
     name: str
-    gamma: float = 1.0
+    fairshare_weight: float = 1.0
     group: Optional[str] = None
     metadata: Optional[Mapping[str, str]] = None
 
@@ -90,8 +90,11 @@ class Household:
             raise ValueError("Household.household_id cannot be empty")
         if not self.name:
             raise ValueError("Household.name cannot be empty")
-        if self.gamma < 0:
-            raise ValueError(f"Household.gamma must be >= 0 (got {self.gamma}) for {self.household_id}")
+        if self.fairshare_weight < 0:
+            raise ValueError(
+                "Household.fairshare_weight must be >= 0 "
+                f"(got {self.fairshare_weight}) for {self.household_id}"
+            )
 
 
 @dataclass(frozen=True)
