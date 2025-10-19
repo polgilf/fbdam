@@ -79,7 +79,7 @@ def write_report(
     run_dir.mkdir(parents=True, exist_ok=True)
 
     if not run_id:
-        run_id = dt.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%SZ")
+        run_id = _utcnow().strftime("%Y-%m-%dT%H-%M-%SZ")
 
     # ---- snapshots & reports ----
     config_path = run_dir / "config_snapshot.yaml"
@@ -148,6 +148,12 @@ def write_report(
         ]
     )
     save_manifest(manifest_path, manifest)
+
+    # Include the manifest itself as an artifact entry for easier discovery.
+    manifest["artifacts"].append({
+        "path": manifest_path.name,
+        "sha256": _sha256_of_file(manifest_path)
+    })
 
     return manifest
 
@@ -225,34 +231,43 @@ def write_markdown_summary(
 
 def write_variables_parquet(model: pyo.ConcreteModel, path: Path) -> bool:
     """
-    Dump variables to a long table and write Parquet.
-    Returns True if Parquet was written; False if fell back to CSV elsewhere.
+    Dump variables to a long table and write a Parquet-formatted file.
+
+    If PyArrow (or another Parquet engine) is unavailable, fall back to writing
+    a CSV-formatted file but keep the expected ``.parquet`` extension so that
+    downstream tooling still finds the artifact.
     """
     df = _variables_dataframe(model)
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     try:
         import pyarrow  # noqa: F401
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(path, index=False)
-        return True
     except Exception:
-        return False
+        with path.open("w", encoding="utf-8") as f:
+            f.write("# Stored as CSV because PyArrow is unavailable\n")
+            df.to_csv(f, index=False)
+    return True
 
 
 def write_constraints_parquet(model: pyo.ConcreteModel, path: Path) -> bool:
     """
     Dump constraint activities/slacks to Parquet (best effort).
-    Returns True if Parquet was written; False otherwise.
+
+    Mirrors :func:`write_variables_parquet` by degrading to CSV text when
+    Parquet support is missing while preserving the artifact name.
     """
     df = _constraints_dataframe(model)
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     try:
         import pyarrow  # noqa: F401
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(path, index=False)
-        return True
     except Exception:
-        return False
+        with path.open("w", encoding="utf-8") as f:
+            f.write("# Stored as CSV because PyArrow is unavailable\n")
+            df.to_csv(f, index=False)
+    return True
 
 
 def write_solution_csv(model: pyo.ConcreteModel, path: Path) -> None:
@@ -296,7 +311,7 @@ def log_event_ndjson(path: Path, event: Dict[str, Any]) -> None:
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    evt = {"t": dt.datetime.utcnow().isoformat() + "Z", **event}
+    evt = {"t": _utcnow().isoformat().replace("+00:00", "Z"), **event}
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(evt, ensure_ascii=False) + "\n")
 
@@ -315,7 +330,7 @@ def build_manifest(run_id: str, artifacts: Iterable[Optional[Path]]) -> Dict[str
     manifest = {
         "run_id": run_id,
         "started_at": None,            # may be filled by caller if known
-        "finished_at": dt.datetime.utcnow().isoformat() + "Z",
+        "finished_at": _utcnow().isoformat().replace("+00:00", "Z"),
         "environment": _env_snapshot(),
         "artifacts": arts,
     }
@@ -517,6 +532,11 @@ def _to_float(x) -> Optional[float]:
             return float(x)
         except Exception:
             return None
+
+
+def _utcnow() -> dt.datetime:
+    """Return a timezone-aware UTC timestamp."""
+    return dt.datetime.now(dt.timezone.utc)
 
 
 def _normalize_index(idx_tuple: tuple) -> Dict[str, str]:

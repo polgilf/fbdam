@@ -93,6 +93,8 @@ class Household:
         if self.gamma < 0:
             raise ValueError(f"Household.gamma must be >= 0 (got {self.gamma}) for {self.household_id}")
 
+
+@dataclass(frozen=True)
 class Requirement:
     """
     Requirement R for a given (household, nutrient).
