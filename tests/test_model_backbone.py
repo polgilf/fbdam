@@ -184,3 +184,30 @@ def test_backbone_components_evaluate() -> None:
     assert pair_body == pytest.approx(
         -model.epsilon.value - (model.u[nutrient, household].value - kappa * global_mean)
     )
+
+
+def test_purchases_disabled_without_budget_constraint() -> None:
+    domain = _make_domain()
+    cfg = {
+        "domain": domain,
+        "model_params": {"dials": {}},
+        "model": {
+            "constraints": [
+                {"type": "stock_balance", "params": {}},
+                {"type": "u_link", "params": {}},
+            ],
+            "objectives": [
+                {"name": "sum_utility", "sense": "maximize", "params": {}},
+            ],
+        },
+    }
+
+    model = build_model(cfg)
+
+    assert not model.allow_purchases
+    for var in model.y.values():
+        assert var.fixed
+        assert pytest.approx(var.value or 0.0) == 0.0
+
+    for item in model.I:
+        assert pytest.approx(pyo.value(model.Avail[item])) == model.S[item]

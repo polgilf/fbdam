@@ -68,13 +68,16 @@ def build_model(cfg: dict) -> pyo.ConcreteModel:
     domain, constraint_specs, objective_specs, model_params = _unpack_config(cfg)
     m = pyo.ConcreteModel(name="FBDAM")
 
+    allow_purchases = _should_enable_purchases(constraint_specs, model_params)
+
     _build_sets(m, domain)
     _build_params(m, domain)
-    _build_variables(m, domain)
+    _build_variables(m, domain, allow_purchases=allow_purchases)
     _build_expressions(m)
 
     # Expose raw (non-Pyomo) parameters so plugins can read dials/budget/etc.
     m.model_params = model_params or {}
+    m.allow_purchases = allow_purchases
 
     _apply_constraint_plugins(m, constraint_specs)
     _apply_objective_plugin(m, objective_specs)
@@ -114,6 +117,30 @@ def _unpack_config(cfg: object) -> Tuple[DomainIndex, Sequence[dict], Sequence[d
 # ------------------------------------------------------------
 # Internal builders: sets, params, vars, exprs
 # ------------------------------------------------------------
+
+def _should_enable_purchases(constraint_specs: Sequence[dict], model_params: Mapping[str, Any] | None) -> bool:
+    """Determine whether purchase variables should be active."""
+
+    # Explicit signal from model parameters wins.
+    params = model_params or {}
+    if isinstance(params, Mapping) and "allow_purchases" in params:
+        raw_flag = params.get("allow_purchases")
+        if isinstance(raw_flag, str):
+            text = raw_flag.strip().lower()
+            if text in {"true", "1", "yes", "y", "on"}:
+                return True
+            if text in {"false", "0", "no", "n", "off"}:
+                return False
+        if raw_flag is not None:
+            return bool(raw_flag)
+
+    # Fall back to detecting plugins that require purchases (currently purchase_budget).
+    for spec in constraint_specs:
+        if isinstance(spec, Mapping) and spec.get("type") == "purchase_budget":
+            return True
+
+    return False
+
 
 def _build_sets(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
     """Create fundamental index sets."""
@@ -180,7 +207,9 @@ def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
     )
 
 
-def _build_variables(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
+def _build_variables(
+    m: pyo.ConcreteModel, domain: DomainIndex, *, allow_purchases: bool
+) -> None:
     """Create decision variables and common auxiliaries."""
 
     bounds: Mapping[tuple, AllocationBounds] = domain.bounds
@@ -202,6 +231,9 @@ def _build_variables(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
 
     # Purchases y[i] >= 0 (augment donated stock)
     m.y = pyo.Var(m.I, domain=pyo.NonNegativeReals, doc="Purchased quantity of item i")
+    if not allow_purchases:
+        for var in m.y.values():
+            var.fix(0.0)
 
     # Optional deviation variables used by fairness constraints (kept generic)
     m.dpos = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Positive deviation helper")
