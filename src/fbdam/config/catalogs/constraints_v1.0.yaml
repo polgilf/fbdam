@@ -18,10 +18,64 @@ constraints:
       Vincula utilidad con cantidad y requerimiento:
       u[n,h] <= q[n,h] / R[h,n]
     params: {}
+  - id: stock_balance
+    type: stock_balance
+    description: >
+      Balancea inventario: la suma de asignaciones por ítem no puede superar
+      la disponibilidad donada más las compras (S_i + y_i).
+    params: {}
+  - id: purchase_budget
+    type: purchase_budget
+    description: >
+      Limita el gasto total en compras según el presupuesto del escenario o
+      el parámetro 'budget' provisto en el bloque.
+    params: {}
   - id: fairshare_cap_house
     type: fairshare_cap_house
     description: >
       Limita la desviación absoluta respecto a una asignación proporcional
-      basada en el peso fairshare_weight de cada hogar.
+      basada en el peso fairshare_weight de cada hogar (usa el dial alpha).
     params:
       alpha: 0.7
+  - id: deviation_identity
+    type: deviation_identity
+    description: >
+      Descompone la desviación absoluta frente al fair-share w_h·(S_i + y_i)
+      mediante las variables delta^+ y delta^-.
+    params: {}
+  - id: deviation_item_cap
+    type: deviation_item_cap
+    description: >
+      Cota L1 agregada por ítem usando el dial alpha_i: suma_h (delta^+ + delta^-)
+      <= alpha_i · (S_i + y_i).
+    params: {}
+  - id: deviation_household_cap
+    type: deviation_household_cap
+    description: >
+      Cota L1 agregada por hogar usando el dial beta_h: suma_i (delta^+ + delta^-)
+      <= beta_h · TotSupply.
+    params: {}
+  - id: deviation_pair_cap
+    type: deviation_pair_cap
+    description: >
+      Cota L1 por par (i,h) usando el dial rho_{i,h}: delta^+ + delta^- <= rho_{i,h}·(S_i + y_i).
+    params: {}
+  - id: household_floor
+    type: household_floor
+    description: >
+      Impone el suelo agregado por hogar: \bar{u}_h - omega_h·\bar{u}_{all} >= -epsilon.
+      El dial omega puede ser escalar o por hogar; use_slack controla el uso de epsilon.
+    params:
+      use_slack: auto
+  - id: nutrient_floor
+    type: nutrient_floor
+    description: >
+      Impone el suelo agregado por nutriente: \bar{u}_n - gamma_n·\bar{u}_{all} >= -epsilon.
+    params:
+      use_slack: auto
+  - id: pair_floor
+    type: pair_floor
+    description: >
+      Impone el suelo por par nutriente-hogar: u[n,h] - kappa_{n,h}·\bar{u}_{all} >= -epsilon.
+    params:
+      use_slack: auto
