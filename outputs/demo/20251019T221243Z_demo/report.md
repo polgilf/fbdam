@@ -1,21 +1,21 @@
 # FBDAM Run Report
 
-**Run ID:** `20251019T220521Z_demo`
+**Run ID:** `20251019T221243Z_demo`
 
 ## Solver summary
 - Name: appsi_highs
 - Status: unknown
 - Termination: unknown
-- Elapsed Sec: 0.119
-- Objective Value: 6.147938345864662
+- Elapsed Sec: 0.1185
+- Objective Value: 7.449
 
 ## KPIs
 | Metric | Value |
 |---|---|
-| objective_value | 6.147938345864662 |
-| total_allocation | 50.0 |
-| avg_allocation_per_pair | 4.166666666666667 |
-| mean_utility | 0.683104260651629 |
+| objective_value | 7.449 |
+| total_allocation | 108.0 |
+| avg_allocation_per_pair | 9.0 |
+| mean_utility | 0.8276666666666667 |
 | items | 4 |
 | households | 3 |
 | nutrients | 3 |

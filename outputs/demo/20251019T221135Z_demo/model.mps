@@ -19,7 +19,6 @@ ROWS
  L  c_u_StockBalance(beans)_
  L  c_u_StockBalance(milk)_
  L  c_u_StockBalance(rice)_
- L  c_u_PurchaseBudget_
 COLUMNS
      x(apples_H1) c_u_U_link(cal_H1)_ -0.024761904761904763
      x(apples_H1) c_u_U_link(calc_H1)_ -0.0060000000000000001
@@ -87,14 +86,6 @@ COLUMNS
      u(prot_H2) c_u_U_link(prot_H2)_ 1
      u(prot_H3) OBJ 1
      u(prot_H3) c_u_U_link(prot_H3)_ 1
-     y(apples) c_u_StockBalance(apples)_ -1
-     y(apples) c_u_PurchaseBudget_ 1.1000000000000001
-     y(beans) c_u_StockBalance(beans)_ -1
-     y(beans) c_u_PurchaseBudget_ 1.2
-     y(milk) c_u_StockBalance(milk)_ -1
-     y(milk) c_u_PurchaseBudget_ 0.90000000000000002
-     y(rice) c_u_StockBalance(rice)_ -1
-     y(rice) c_u_PurchaseBudget_ 1
 RHS
      RHS c_u_U_link(cal_H1)_ 0
      RHS c_u_U_link(cal_H2)_ 0
@@ -109,7 +100,6 @@ RHS
      RHS c_u_StockBalance(beans)_ 12
      RHS c_u_StockBalance(milk)_ 10
      RHS c_u_StockBalance(rice)_ 20
-     RHS c_u_PurchaseBudget_ 0
 BOUNDS
  LI BOUND x(apples_H1) 0
  UI BOUND x(apples_H1) 3
@@ -153,8 +143,4 @@ BOUNDS
  UP BOUND u(prot_H2) 1
  LO BOUND u(prot_H3) 0
  UP BOUND u(prot_H3) 1
- LO BOUND y(apples) 0
- LO BOUND y(beans) 0
- LO BOUND y(milk) 0
- LO BOUND y(rice) 0
 ENDATA

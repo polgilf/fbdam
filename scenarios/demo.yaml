@@ -20,9 +20,9 @@ model:
   constraints:
     - ref: util_link
     - ref: stock_balance
-    #- ref: purchase_budget
-      #override:
-        #budget: 0
+    - ref: purchase_budget
+      override:
+        budget: 100
   objectives:
     - ref: sum_utility
 
