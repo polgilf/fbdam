@@ -24,7 +24,7 @@ except Exception:  # pragma: no cover
 from fbdam.engine.domain import DomainIndex
 from fbdam.engine.model import build_model
 from fbdam.engine.solver import solve_model
-from fbdam.engine.reporting_old import write_report
+from fbdam.engine.reporting import write_report
 
 __all__ = [
     "load_scenario",

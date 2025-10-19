@@ -82,26 +82,51 @@ def _get_lambda_value(model_params: Mapping[str, Any]) -> float | None:
     return None
 
 
-def _coerce_mapping(value: Any) -> Mapping[Any, Any] | None:
-    if isinstance(value, Mapping):
-        return value
-    return None
-
-
-def _resolve_indexed_value(
-    source: Any,
-    index: Any,
+def _get_dial_value(
+    m: pyo.ConcreteModel,
+    params: Mapping[str, Any],
+    name: str,
+    index: Any | None = None,
     *,
     default: float | None = None,
 ) -> float:
-    mapping = _coerce_mapping(source)
-    if mapping is None:
-        if source is None:
-            if default is not None:
-                return float(default)
-            raise ValueError("No value provided for dial.")
-        return float(source)
+    sources = []
+    if isinstance(params, Mapping) and name in params:
+        sources.append(params[name])
 
+    model_params = _get_model_params(m)
+    dials = model_params.get("dials") if isinstance(model_params, Mapping) else None
+    if isinstance(dials, Mapping) and name in dials:
+        sources.append(dials[name])
+
+    for source in sources:
+        try:
+            return _materialise_dial_value(source, index, default)
+        except KeyError:
+            continue
+
+    if default is not None:
+        return float(default)
+
+    raise KeyError(f"Dial '{name}' not provided for index {index!r}.")
+
+
+def _materialise_dial_value(source: Any, index: Any | None, default: float | None) -> float:
+    if isinstance(source, Mapping):
+        if index is None:
+            for key in ("default", "__default__"):
+                if key in source:
+                    return float(source[key])
+            raise KeyError("Mapping dial requires an index or default entry.")
+        return _lookup_indexed_mapping(source, index, default)
+
+    if source is None:
+        raise KeyError("Dial source is None")
+
+    return float(source)
+
+
+def _lookup_indexed_mapping(mapping: Mapping[Any, Any], index: Any, default: float | None) -> float:
     if isinstance(index, tuple) and len(index) == 2:
         first, second = index
         if first in mapping:
@@ -126,34 +151,6 @@ def _resolve_indexed_value(
         return float(default)
 
     raise KeyError(f"Dial mapping missing value for index {index!r}.")
-
-
-def _get_dial_value(
-    m: pyo.ConcreteModel,
-    params: Mapping[str, Any],
-    name: str,
-    index: Any | None = None,
-    *,
-    default: float | None = None,
-) -> float:
-    source = params.get(name) if isinstance(params, Mapping) else None
-    if source is None:
-        model_params = _get_model_params(m)
-        dials = model_params.get("dials", {})
-        if isinstance(dials, Mapping):
-            source = dials.get(name)
-    if index is None:
-        if isinstance(source, Mapping):
-            # Without an index, prefer an explicit default entry.
-            for key in ("default", "__default__"):
-                if key in source:
-                    return float(source[key])
-        if source is None:
-            if default is not None:
-                return float(default)
-            raise ValueError(f"Dial '{name}' not provided.")
-        return float(source)
-    return _resolve_indexed_value(source, index, default=default)
 
 
 def _should_use_slack(m: pyo.ConcreteModel, params: Mapping[str, Any]) -> bool:
