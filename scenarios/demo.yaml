@@ -33,7 +33,7 @@ model:
         beta: 0.1  # 0 for perfect fairness, 1 for no fairness constraint
     - ref: pairwise_equity_cap
       override:
-        rho: 0   # 0 for perfect fairness, 1 for no fairness constraint
+        rho: 0.1   # 0 for perfect fairness, 1 for no fairness constraint
     # Nutritional adequacy floors
     - ref: household_adequacy_floor
       override:

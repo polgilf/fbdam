@@ -18,6 +18,7 @@ except ImportError:  # pragma: no cover - fallback for older Pyomo releases
     ProblemFormat = None  # type: ignore
 
 from fbdam.engine.domain import DomainIndex
+from fbdam.engine.kpis import compute_kpis
 
 ArtifactRows = Iterable[Sequence[Any]]
 
@@ -336,54 +337,6 @@ def _normalise_solver_report(
         "solver": {k: v for k, v in solver_section.items() if v is not None},
         "raw": dict(solver_results),
     }
-
-
-def compute_kpis(
-    model: pyo.ConcreteModel,
-    domain: DomainIndex | None,
-    solver_report: Mapping[str, Any],
-) -> Dict[str, Any]:
-    metrics: Dict[str, Any] = {}
-
-    solver_section = solver_report.get("solver")
-    if isinstance(solver_section, Mapping) and "objective_value" in solver_section:
-        metrics["objective_value"] = solver_section["objective_value"]
-
-    total_alloc = 0.0
-    alloc_count = 0
-    if hasattr(model, "x"):
-        items = sorted(list(model.I), key=str)
-        households = sorted(list(model.H), key=str)
-        for i in items:
-            for h in households:
-                value = pyo.value(model.x[i, h], exception=False)
-                if value is None:
-                    continue
-                total_alloc += float(value)
-                alloc_count += 1
-    metrics["total_allocation"] = total_alloc
-    metrics["avg_allocation_per_pair"] = total_alloc / alloc_count if alloc_count else 0.0
-
-    util_sum = 0.0
-    util_count = 0
-    if hasattr(model, "u"):
-        nutrients = sorted(list(model.N), key=str)
-        households = sorted(list(model.H), key=str)
-        for n in nutrients:
-            for h in households:
-                value = pyo.value(model.u[n, h], exception=False)
-                if value is None:
-                    continue
-                util_sum += float(value)
-                util_count += 1
-    metrics["mean_utility"] = util_sum / util_count if util_count else 0.0
-
-    if domain is not None:
-        metrics["items"] = len(domain.items)
-        metrics["households"] = len(domain.households)
-        metrics["nutrients"] = len(domain.nutrients)
-
-    return {"kpi": metrics}
 
 # ---------------------------------------------------------------------------
 # Model MPS export
