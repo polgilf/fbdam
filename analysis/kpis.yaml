@@ -1,0 +1,35 @@
+kpis:
+  - id: basic.items
+    label: Items
+  - id: basic.households
+    label: Households
+  - id: basic.nutrients
+    label: Nutrients
+  - id: basic.objective_value
+    label: Objective value
+  - id: supply.total_allocation
+    label: Total allocation
+  - id: supply.avg_allocation_per_pair
+    label: Avg allocation per pair
+  - id: supply.undistributed
+    label: Undistributed
+  - id: supply.total_cost
+    label: Total cost
+  - id: utility.total_nutritional_utility
+    label: Total nutritional utility
+  - id: utility.global_mean_utility
+    label: Global mean utility
+  - id: utility.min_mean_utility_per_household
+    label: Min mean utility per household
+  - id: utility.min_mean_utility_per_nutrient
+    label: Min mean utility per nutrient
+  - id: utility.min_overall_utility
+    label: Min overall utility
+  - id: fairness.global_mean_deviation_from_fair_share
+    label: Global mean deviation from fair share
+  - id: fairness.min_mean_deviation_from_fair_share_per_household
+    label: Min mean deviation from fair share per household
+  - id: fairness.min_mean_deviation_from_fair_share_per_nutrient
+    label: Min mean deviation from fair share per nutrient
+  - id: fairness.min_overall_deviation_from_fair_share
+    label: Min overall deviation from fair share
