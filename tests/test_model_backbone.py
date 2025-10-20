@@ -94,6 +94,8 @@ def test_backbone_components_evaluate() -> None:
     assert hasattr(model, "Avail")
     assert hasattr(model, "TotSupply")
     assert hasattr(model, "nutrient_mean_utility")
+    assert hasattr(model, "household_mean_utility")
+    assert hasattr(model, "global_mean_utility")
 
     items = sorted(model.I)
     households = sorted(model.H)
@@ -132,7 +134,7 @@ def test_backbone_components_evaluate() -> None:
     manual_household = sum(model.x[i, household].value for i in model.I)
     assert pytest.approx(household_total) == manual_household
 
-    mean_nutrient = pyo.value(model.mean_utility_nutrient[nutrient])
+    mean_nutrient = pyo.value(model.nutrient_mean_utility[nutrient])
     expected_mean = sum(model.u[nutrient, h].value for h in model.H) / len(model.H)
     assert pytest.approx(mean_nutrient) == expected_mean
 
@@ -166,7 +168,7 @@ def test_backbone_components_evaluate() -> None:
 
     hh_floor = model.HouseholdFloor[household]
     omega = cfg["model_params"]["dials"]["omega"]
-    hh_mean = pyo.value(model.mean_utility[household])
+    hh_mean = pyo.value(model.household_mean_utility[household])
     body_hh = pyo.value(hh_floor.body)
     assert body_hh == pytest.approx(
         -model.epsilon.value - (hh_mean - omega * global_mean)
@@ -174,7 +176,7 @@ def test_backbone_components_evaluate() -> None:
 
     nutrient_floor = model.NutrientFloor[nutrient]
     gamma = cfg["model_params"]["dials"]["gamma"]
-    nutrient_mean = pyo.value(model.mean_utility_nutrient[nutrient])
+    nutrient_mean = pyo.value(model.nutrient_mean_utility[nutrient])
     body_nutrient = pyo.value(nutrient_floor.body)
     assert body_nutrient == pytest.approx(
         -model.epsilon.value - (nutrient_mean - gamma * global_mean)
