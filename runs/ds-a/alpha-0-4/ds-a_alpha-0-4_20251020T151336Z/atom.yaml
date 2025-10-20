@@ -1,0 +1,12 @@
+run_id: ds-a_alpha-0-4_20251020T151336Z
+dataset_id: ds-a
+config_id: alpha-0.4
+status: mock
+termination: not attempted
+is_feasible: true
+objective_value: 0.0
+gap: null
+best_feasible_objective: 0.0
+best_objective_bound: 0.0
+elapsed_sec: 0.0029
+profile_id: time-limited

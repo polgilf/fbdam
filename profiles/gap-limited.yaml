@@ -1,0 +1,5 @@
+id: gap-limited
+description: Target a tighter optimality gap without a strict time limit.
+solver:
+  options:
+    mip_rel_gap: 0.01

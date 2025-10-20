@@ -1,0 +1,9 @@
+budget: 120
+lambda: 0.5
+dials:
+  alpha: 0.5
+  beta: 0.5
+  rho: 0.5
+  gamma: 0.6
+  kappa: 0.6
+  omega: 0.6

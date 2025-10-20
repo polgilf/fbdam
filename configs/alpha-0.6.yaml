@@ -1,0 +1,38 @@
+version: v1
+name: Alpha fairness dial at 0.6
+model:
+  description: |
+    Identical constraint set to the alpha-0.4 configuration but with a
+    looser alpha dial (0.6) to test sensitivity.
+  constraints:
+    - ref: nutrition_utility_mapping
+    - ref: item_supply_limit
+    - ref: purchase_budget_limit
+    - ref: fairshare_deviation_identity
+    - ref: item_equity_aggregate_cap
+      override:
+        alpha: 0.6
+    - ref: household_equity_aggregate_cap
+      override:
+        beta: 0.5
+    - ref: pairwise_equity_cap
+      override:
+        rho: 0.5
+    - ref: household_adequacy_floor
+      override:
+        omega: 0.6
+    - ref: nutrient_adequacy_floor
+      override:
+        gamma: 0.6
+    - ref: pairwise_adequacy_floor
+      override:
+        kappa: 0.6
+  objectives:
+    - ref: sum_utility
+  dials:
+    alpha: 0.6
+    beta: 0.5
+    rho: 0.5
+    gamma: 0.6
+    kappa: 0.6
+    omega: 0.6

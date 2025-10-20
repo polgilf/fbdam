@@ -1,0 +1,5 @@
+household_id,nutrient_id,requirement
+A1,cal,1600
+A1,prot,45
+A2,cal,1700
+A2,prot,50
