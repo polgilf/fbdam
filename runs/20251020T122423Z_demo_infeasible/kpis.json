@@ -1,0 +1,11 @@
+{
+  "kpi": {
+    "basic": {
+      "items": 4,
+      "households": 3,
+      "nutrients": 3,
+      "objective_value": null,
+      "feasibility_status": "INFEASIBLE"
+    }
+  }
+}
