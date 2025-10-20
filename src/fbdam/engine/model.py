@@ -7,7 +7,7 @@ Inputs expected:
 - domain: fbdam.engine.domain.DomainIndex      (immutable, typed container)
 - model_spec: dict-like with:
     {
-      "constraints": [{"type": "<name>", "params": {...}}, ...],
+      "constraints": [{"id": "<name>", "params": {...}}, ...],
       "objectives":  [{"name": "<name>", "sense": "maximize", "params": {...}}]
     }
 
@@ -18,7 +18,7 @@ Notes:
 - Utility u[n,h] is a variable bounded in [0, 1]; keep it clean and let constraints
   (e.g., u_link) define the linkage.
 - We predefine deviation variables (dpos/dneg) frequently used by fairness caps.
-- 'household_floor' plugins expect mean and global mean utility expressions.
+- 'household_adequacy_floor' plugins expect mean and global mean utility expressions.
 
 This builder does NOT read files. All I/O/validation should happen in io.py.
 """
@@ -54,7 +54,7 @@ def build_model(cfg: dict) -> pyo.ConcreteModel:
         "domain": DomainIndex(...),
         "model_params": {...},
         "model": {
-          "constraints": [{"type": "u_link", "params": {...}}, ...],
+          "constraints": [{"id": "nutrition_utility_mapping", "params": {...}}, ...],
           "objectives":  [{"name": "sum_utility", "sense": "maximize", "params": {...}}]
         }
       }
@@ -95,7 +95,7 @@ def _unpack_config(cfg: object) -> Tuple[DomainIndex, Sequence[dict], Sequence[d
     if hasattr(cfg, "domain") and hasattr(cfg, "constraints"):
         domain = getattr(cfg, "domain")
         constraints = [
-            {"type": c.type, "params": c.params}
+            {"id": c.id, "params": dict(c.params)}
             for c in getattr(cfg, "constraints", [])
         ]
         objectives = [
@@ -108,9 +108,18 @@ def _unpack_config(cfg: object) -> Tuple[DomainIndex, Sequence[dict], Sequence[d
     # Fallback to dict-style configuration
     spec = cfg.get("model", {}) if isinstance(cfg, Mapping) else {}
     domain = cfg["domain"] if isinstance(cfg, Mapping) else getattr(cfg, "domain")
-    constraints = spec.get("constraints", [])
+    raw_constraints = spec.get("constraints", [])
     objectives = spec.get("objectives", [])
     model_params = cfg.get("model_params", {}) if isinstance(cfg, Mapping) else {}
+    constraints = []
+    for entry in raw_constraints:
+        if isinstance(entry, Mapping):
+            params = entry.get("params", {}) or {}
+            if not isinstance(params, Mapping):
+                raise ValueError("Constraint 'params' must be a mapping.")
+            constraints.append({"id": entry.get("id") or entry.get("type"), "params": dict(params)})
+        else:
+            constraints.append(entry)
     return domain, constraints, objectives, model_params
 
 
@@ -136,7 +145,8 @@ def _should_enable_purchases(constraint_specs: Sequence[dict], model_params: Map
 
     # Fall back to detecting plugins that require purchases (currently purchase_budget).
     for spec in constraint_specs:
-        if isinstance(spec, Mapping) and spec.get("type") == "purchase_budget":
+        name = _get_constraint_name(spec)
+        if name in {"purchase_budget_limit", "purchase_budget"}:
             return True
 
     return False
@@ -302,25 +312,38 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
             return 0.0
         return model.total_utility / (model.cardN * model.cardH)
 
-    m.global_mean_utility = pyo.Expression(rule=_global_mean, doc="Global mean utility across all nutrient-household pairs")
+    m.global_mean_utility = pyo.Expression(
+        rule=_global_mean, doc="Global mean utility across all nutrient-household pairs"
+    )
 
 
 # ------------------------------------------------------------
 # Apply plugins (constraints & objective)
 # ------------------------------------------------------------
 
+
+def _get_constraint_name(spec: Mapping[str, Any] | Any) -> str | None:
+    if not isinstance(spec, Mapping):
+        return None
+    raw = spec.get("id") or spec.get("type")
+    if isinstance(raw, str):
+        name = raw.strip()
+        return name or None
+    return None
+
+
 def _apply_constraint_plugins(m: pyo.ConcreteModel, constraint_specs: Iterable[dict]) -> None:
     """
     Apply registered constraint blocks in the order provided.
 
     Each spec should contain:
-      { "type": "<registry name>", "params": {...} }
+      { "id": "<registry name>", "params": {...} }
     """
     for idx, c in enumerate(constraint_specs, start=1):
-        name = c.get("type")
+        name = _get_constraint_name(c)
         params: Dict = c.get("params", {})
         if not name:
-            raise ValueError(f"Constraint spec at position {idx} missing 'type' key.")
+            raise ValueError(f"Constraint spec at position {idx} missing 'id' key.")
         handler = get_constraint(name)
         handler(m, params)
 

@@ -18,7 +18,7 @@ and that your repo layout looks like this:
 src/
   fbdam/
     engine/io.py
-    config/catalogs/constraints_v1.0.yaml
+    config/catalogs/constraints_v1.1.yaml
     config/catalogs/objectives_v1.0.yaml
 ```
 
@@ -54,11 +54,11 @@ model:
   budget: 1500
   lambda: 0.8
   constraints:
-    - ref: util_link
+    - ref: nutrition_utility_mapping
       override: {}
-    - ref: fairshare_cap_house
+    - ref: household_equity_aggregate_cap
       override:
-        alpha: 0.25
+        beta: 0.25
   objectives:
     - ref: sum_utility
 
@@ -72,14 +72,13 @@ solver:
 
 ### B. Create **dummy catalogs**
 
-Under `src/fbdam/config/catalogs/constraints_v1.0.yaml`:
+Under `src/fbdam/config/catalogs/constraints_v1.1.yaml`:
 
 ```yaml
 version: v1.0
 status: draft
 constraints:
-  - id: util_link
-    type: u_link
+  - id: nutrition_utility_mapping
     params: {}
 ```
 
@@ -130,8 +129,8 @@ ScenarioConfig(
     'requirements_csv': PosixPath('/.../data/demo/requirements.csv')
   },
   constraints=[
-    MaterializedConstraint(id='util_link', type='u_link', params={}),
-    MaterializedConstraint(id='fairshare_cap_house', type='fairshare_cap_house', params={'alpha': 0.25})
+    MaterializedConstraint(id='nutrition_utility_mapping', params={}),
+    MaterializedConstraint(id='household_equity_aggregate_cap', params={'beta': 0.25})
   ],
   objectives=[MaterializedObjective(id='sum_utility', name='sum_utility', sense='maximize', params={})],
   solver=SolverConfig(name='appsi_highs', options={'time_limit': 10}),
@@ -209,7 +208,7 @@ data:
   household_item_bounds_csv: {data_dir}/household_item_bounds.csv
 model:
   constraints:
-    - ref: util_link
+    - ref: nutrition_utility_mapping
   objectives:
     - ref: sum_utility
 solver:
@@ -219,7 +218,7 @@ solver:
     cfg = load_scenario(scenario_path)
     assert isinstance(cfg, ScenarioConfig)
     assert cfg.solver.name == "appsi_highs"
-    assert cfg.constraints[0].id == "util_link"
+    assert cfg.constraints[0].id == "nutrition_utility_mapping"
 ```
 
 Run it:

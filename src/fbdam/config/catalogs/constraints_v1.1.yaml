@@ -1,49 +1,49 @@
-version: v1.0
+version: v1.1
 status: validated
 maintainer: pol_gil
 constraints:
   # Core mechanics
   - id: nutrition_utility_mapping
-    description: Maps nutrient delivery to capped utility (u_nh ≤ q_nh/R_nh, bounded [0,1])
+    description: "Maps nutrient delivery to capped utility (u_nh ≤ q_nh / R_nh, bounded [0, 1])"
     params: {}
-    
+
   - id: item_supply_limit
-    description: Total allocation per item ≤ donated stock + purchases
+    description: "Total allocation per item ≤ donated stock + purchases"
     params: {}
-    
+
   - id: purchase_budget_limit
-    description: Total purchase cost ≤ available budget
+    description: "Total purchase cost ≤ available budget"
     params: {}
-    
+
   # Equity dials (L1 deviation framework around fair-share)
   - id: fairshare_deviation_identity
-    description: Decomposes allocation deviation from fair-share into δ⁺ and δ⁻ components
+    description: "Decomposes allocation deviation from fair-share into δ⁺ and δ⁻ components"
     params: {}
-    
+
   - id: item_equity_aggregate_cap
-    description: Limits total L1 deviation across households per item (dial: alpha_i)
+    description: "Limits total L1 deviation across households per item (dial: alpha_i)"
     params: {}
-    
+
   - id: household_equity_aggregate_cap
-    description: Limits total L1 deviation across items per household (dial: beta_h)
+    description: "Limits total L1 deviation across items per household (dial: beta_h)"
     params: {}
-    
+
   - id: pairwise_equity_cap
-    description: Limits individual (item, household) L1 deviation (dial: rho_ih)
+    description: "Limits individual (item, household) L1 deviation (dial: rho_ih)"
     params: {}
-    
+
   # Nutritional adequacy floors (relative to global mean)
   - id: household_adequacy_floor
-    description: Ensures avg utility per household ≥ omega_h × global mean (dial: omega_h)
+    description: "Ensures avg utility per household ≥ omega_h × global mean (dial: omega_h)"
     params:
       use_slack: auto
-      
+
   - id: nutrient_adequacy_floor
-    description: Ensures avg utility per nutrient ≥ gamma_n × global mean (dial: gamma_n)
+    description: "Ensures avg utility per nutrient ≥ gamma_n × global mean (dial: gamma_n)"
     params:
       use_slack: auto
-      
+
   - id: pairwise_adequacy_floor
-    description: Ensures utility per (nutrient, household) ≥ kappa_nh × global mean (dial: kappa_nh)
+    description: "Ensures utility per (nutrient, household) ≥ kappa_nh × global mean (dial: kappa_nh)"
     params:
       use_slack: auto

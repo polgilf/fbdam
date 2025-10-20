@@ -7,11 +7,11 @@ used in FBDAM optimization models.
 Design principles:
 - Each constraint is a callable: (model, params) -> None
 - They are registered dynamically via the @register_constraint decorator.
-- This allows catalogs (YAML) to activate them by name (e.g., "u_link").
+- This allows catalogs (YAML) to activate them by name (e.g., "nutrition_utility_mapping").
 
 Example:
-    @register_constraint("u_link")
-    def add_u_link(m, params):
+    @register_constraint("nutrition_utility_mapping")
+    def add_nutrition_utility_mapping(m, params):
         def rule(m, n, h):
             return m.u[n, h] <= m.q[n, h] / m.R[h, n]
         m.U_link = pyo.Constraint(m.N, m.H, rule=rule)
@@ -185,10 +185,10 @@ def _slack_term(m: pyo.ConcreteModel, params: Mapping[str, Any]) -> pyo.Expressi
 # Example constraint implementations
 # ---------------------------------------------------------------------
 
-@register_constraint("u_link")
+@register_constraint("nutrition_utility_mapping")
 def add_u_link(m: pyo.ConcreteModel, params: dict) -> None:
     """
-    u_link — Utility linkage constraint
+    nutrition_utility_mapping — Utility linkage constraint
     -----------------------------------
     Links household-nutrient utility with delivered quantity and requirement.
 
@@ -204,7 +204,7 @@ def add_u_link(m: pyo.ConcreteModel, params: dict) -> None:
     m.U_link = pyo.Constraint(m.N, m.H, rule=rule)
 
 
-@register_constraint("stock_balance")
+@register_constraint("item_supply_limit")
 def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
     """Ensure allocations of each item do not exceed available supply."""
 
@@ -214,7 +214,7 @@ def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
     m.StockBalance = pyo.Constraint(m.I, rule=rule)
 
 
-@register_constraint("purchase_budget")
+@register_constraint("purchase_budget_limit")
 def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
     """Limit total purchases by the available monetary budget."""
 
@@ -232,10 +232,10 @@ def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
     m.PurchaseBudget = pyo.Constraint(rule=rule)
 
 
-@register_constraint("household_floor")
+@register_constraint("household_adequacy_floor")
 def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
     """
-    household_floor — Household minimum utility
+    household_adequacy_floor — Household minimum utility
     -------------------------------------------
     Implements  \bar u_h - omega_h * \bar u_all >= -epsilon.
 
@@ -253,9 +253,9 @@ def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
     m.HouseholdFloor = pyo.Constraint(m.H, rule=rule)
 
 
-@register_constraint("nutrient_floor")
+@register_constraint("nutrient_adequacy_floor")
 def add_nutrient_floor(m: pyo.ConcreteModel, params: dict) -> None:
-    """Implements  \bar u_n - gamma_n * \bar u_all >= -epsilon."""
+    """nutrient_adequacy_floor — Implements \bar u_n - gamma_n * \bar u_all >= -epsilon."""
 
     slack = _slack_term(m, params)
 
@@ -266,9 +266,9 @@ def add_nutrient_floor(m: pyo.ConcreteModel, params: dict) -> None:
     m.NutrientFloor = pyo.Constraint(m.N, rule=rule)
 
 
-@register_constraint("pair_floor")
+@register_constraint("pairwise_adequacy_floor")
 def add_pair_floor(m: pyo.ConcreteModel, params: dict) -> None:
-    """Implements  u[n,h] - kappa_{n,h} * \bar u_all >= -epsilon."""
+    """pairwise_adequacy_floor — Implements u[n,h] - kappa_{n,h} * \bar u_all >= -epsilon."""
 
     slack = _slack_term(m, params)
 
@@ -299,9 +299,9 @@ def add_fairshare_cap_house(m: pyo.ConcreteModel, params: dict) -> None:
     m.FairCapHouse = pyo.Constraint(m.H, rule=rule)
 
 
-@register_constraint("deviation_identity")
+@register_constraint("fairshare_deviation_identity")
 def add_deviation_identity(m: pyo.ConcreteModel, params: dict) -> None:
-    """Linearize absolute deviation around proportional share."""
+    """fairshare_deviation_identity — Linearize absolute deviation around proportional share."""
 
     def rule(model, i, h):
         fair_target = model.fairshare_weight[h] * model.Avail[i]
@@ -310,7 +310,7 @@ def add_deviation_identity(m: pyo.ConcreteModel, params: dict) -> None:
     m.DeviationIdentity = pyo.Constraint(m.I, m.H, rule=rule)
 
 
-@register_constraint("deviation_item_cap")
+@register_constraint("item_equity_aggregate_cap")
 def add_deviation_item_cap(m: pyo.ConcreteModel, params: dict) -> None:
     """Aggregate per-item L1 deviation cap with dial alpha."""
 
@@ -321,7 +321,7 @@ def add_deviation_item_cap(m: pyo.ConcreteModel, params: dict) -> None:
     m.DeviationItemCap = pyo.Constraint(m.I, rule=rule)
 
 
-@register_constraint("deviation_household_cap")
+@register_constraint("household_equity_aggregate_cap")
 def add_deviation_household_cap(m: pyo.ConcreteModel, params: dict) -> None:
     """Aggregate per-household L1 deviation cap with dial beta."""
 
@@ -332,7 +332,7 @@ def add_deviation_household_cap(m: pyo.ConcreteModel, params: dict) -> None:
     m.DeviationHouseholdCap = pyo.Constraint(m.H, rule=rule)
 
 
-@register_constraint("deviation_pair_cap")
+@register_constraint("pairwise_equity_cap")
 def add_deviation_pair_cap(m: pyo.ConcreteModel, params: dict) -> None:
     """Per (item, household) deviation cap with dial rho."""
 

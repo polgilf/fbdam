@@ -31,8 +31,8 @@ cfg = {
   "domain": domain_index,
   "model": {
     "constraints": [
-      {"type": "u_link", "params": {}},
-      {"type": "household_floor", "params": {"U_floor": 0.8}}
+      {"id": "nutrition_utility_mapping", "params": {}},
+      {"id": "household_adequacy_floor", "params": {"U_floor": 0.8}}
     ],
     "objectives": [
       {"name": "sum_utility", "sense": "maximize", "params": {}}

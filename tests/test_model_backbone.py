@@ -60,19 +60,19 @@ def _make_config() -> dict:
         "budget": 100.0,
         "lambda": 1.5,
     }
-    constraint_types = [
-        "stock_balance",
-        "purchase_budget",
-        "u_link",
-        "household_floor",
-        "nutrient_floor",
-        "pair_floor",
-        "deviation_identity",
-        "deviation_item_cap",
-        "deviation_household_cap",
-        "deviation_pair_cap",
+    constraint_ids = [
+        "item_supply_limit",
+        "purchase_budget_limit",
+        "nutrition_utility_mapping",
+        "household_adequacy_floor",
+        "nutrient_adequacy_floor",
+        "pairwise_adequacy_floor",
+        "fairshare_deviation_identity",
+        "item_equity_aggregate_cap",
+        "household_equity_aggregate_cap",
+        "pairwise_equity_cap",
     ]
-    constraints = [{"type": name, "params": {}} for name in constraint_types]
+    constraints = [{"id": name, "params": {}} for name in constraint_ids]
     objectives = [{"name": "sum_utility", "sense": "maximize", "params": {}}]
     return {
         "domain": domain,
@@ -193,8 +193,8 @@ def test_purchases_disabled_without_budget_constraint() -> None:
         "model_params": {"dials": {}},
         "model": {
             "constraints": [
-                {"type": "stock_balance", "params": {}},
-                {"type": "u_link", "params": {}},
+                {"id": "item_supply_limit", "params": {}},
+                {"id": "nutrition_utility_mapping", "params": {}},
             ],
             "objectives": [
                 {"name": "sum_utility", "sense": "maximize", "params": {}},

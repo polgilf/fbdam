@@ -12,7 +12,7 @@
 ├─ /01_SCIENCE/                      # Operational layer
 │  └─ fbdam/
 │     ├─ config/
-│     │  ├─ constraints_v1.0.yaml
+│     │  ├─ constraints_v1.1.yaml
 │     │  ├─ objectives_v1.0.yaml
 │     │  ├─ scenario-demo.yaml
 │     │  └─ dials-defaults.yaml
@@ -66,7 +66,7 @@ maintainer: your_name
 purpose: "Baseline allocation model with equity + nutrition dials"
 ```
 
-- `constraints_v1.0.yaml`: declarative list of constraint IDs with parameters and scopes.
+- `constraints_v1.1.yaml`: declarative list of constraint IDs with parameters and scopes.
 - `objectives_v1.0.yaml`: declarative selection of objective + weights.
 - `scenario-*.yaml`: paths to inputs, dial settings, solver options, seed, and output directory.
 - `dials-defaults.yaml`: default values for alpha_i, beta_h, gamma_n, omega_h, kappa_{n,h}.

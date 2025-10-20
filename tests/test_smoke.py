@@ -77,7 +77,7 @@ def build_minimal_cfg(domain: DomainIndex) -> dict:
         "domain": domain,
         "model": {
             "constraints": [
-                {"type": "u_link", "params": {}},
+                {"id": "nutrition_utility_mapping", "params": {}},
             ],
             "objectives": [
                 {"name": "sum_utility", "sense": "maximize", "params": {}}

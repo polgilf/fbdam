@@ -79,11 +79,12 @@ After installation, the `fbdam` console script is available on your PATH.
        omega: 0.30
      budget: 1500
      lambda: 0.8
-     constraints:
-       - ref: util_link
-       - ref: fairshare_cap_house
-         override:
-           alpha: 0.25
+    constraints:
+      - ref: nutrition_utility_mapping
+      - ref: fairshare_deviation_identity
+      - ref: household_equity_aggregate_cap
+        override:
+          beta: 0.25
      objectives:
        - ref: sum_utility
    solver:
