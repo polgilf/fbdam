@@ -60,20 +60,25 @@ def compute_kpis(
         pyo.value(model.nutrient_mean_utility[n], exception=False) for n in model.N)
     metrics["utility"]["min_overall_utility"] = min(
         pyo.value(model.u[n, h], exception=False) for n in model.N for h in model.H)
-    
 
-    # Global mean utility
-
-    # Min mean utility per nutrient
-
-    # Min mean utility per household
-
-    # Min utility over all nutrient-household pairs
+    # ------------------------------------------------------------
+    # Fairness deviation stats (global_mean_deviation_from_fair_share, min_mean_deviation_per_household, min_mean_deviation_per_nutrient, min_overall_deviation_from_fair_share)
+    # ------------------------------------------------------------
+    metrics["fairness"] = {}
+    metrics["fairness"]["global_mean_deviation_from_fair_share"] = pyo.value(model.global_mean_deviation_from_fairshare, exception=False)
+    metrics["fairness"]["min_mean_deviation_from_fair_share_per_household"] = min(
+        pyo.value(model.household_mean_deviation_from_fairshare[h], exception=False) for h in model.H)
+    metrics["fairness"]["min_mean_deviation_from_fair_share_per_nutrient"] = min(
+        pyo.value(model.item_mean_deviation_from_fairshare[n], exception=False) for n in model.I)
+    metrics["fairness"]["min_overall_deviation_from_fair_share"] = min(
+        pyo.value(model.dpos[i, h] + model.dneg[i, h], exception=False) for i in model.I for h in model.H)
 
     # Round all metrics to 4 decimal places
-    for k in metrics:
-        if isinstance(metrics[k], float):
-            metrics[k] = round(metrics[k], 4)
+    for cat, sub in metrics.items():
+        if isinstance(sub, dict):
+            for k, v in sub.items():
+                if isinstance(v, (int, float)):
+                    sub[k] = round(float(v), 5)
 
     return {"kpi": metrics}
 
