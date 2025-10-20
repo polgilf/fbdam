@@ -1,0 +1,16 @@
+version: v2
+name: Dataset A × Dials Hard Fairness
+status: example
+dataset:
+  id: ds-a
+  path: ../data/ds-a
+config:
+  id: dials-hard-fairness
+  path: ../configs/dials-hard-fairness.yaml
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 60
+    mip_rel_gap: 0.001
+    log_to_console: false
+    log_file: solver.log
