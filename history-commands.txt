@@ -9,3 +9,6 @@ Select-String -Path src/fbdam/engine/constraints.py -Pattern "@register_constrai
 
 # Run demo
 python -m fbdam.engine.run run scenarios/demo.yaml --outputs outputs/demo
+
+# Clear paths (from demo)
+python utilities/clear_path.py outputs/demo
