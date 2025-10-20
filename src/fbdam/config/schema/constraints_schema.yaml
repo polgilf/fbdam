@@ -4,7 +4,7 @@
 # Valida archivos tipo: constraints_vX.Y.yaml
 # - version: v\d+\.\d+
 # - status: draft | validated | archived
-# - constraints: lista de bloques con id único, type y params
+# - constraints: lista de bloques con id único y params
 # ---------------------------------------------------------
 
 $schema: "https://json-schema.org/draft/2020-12/schema"
@@ -26,21 +26,13 @@ properties:
     minItems: 1
     items:
       type: object
-      required: [id, type, params]
+      required: [id, params]
       additionalProperties: false
       properties:
         id:
           type: string
           pattern: "^[a-z0-9_]+$"
           description: "Stable, snake_case identifier"
-        type:
-          type: string
-          description: "Constraint handler name in code registry"
-          enum:
-            - u_link
-            - household_floor
-            - fairshare_cap_house
-            - var_bound
         description:
           type: string
         uri:

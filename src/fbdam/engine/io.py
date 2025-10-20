@@ -42,8 +42,7 @@ class IOConfigError(RuntimeError):
 @dataclass(frozen=True)
 class MaterializedConstraint:
     """A fully specified constraint block ready for the model builder."""
-    id: str                # catalog id for traceability
-    type: str              # implementation key in the constraints registry
+    id: str                # catalog id / registry key
     params: Dict[str, Any] # concrete parameters (after overrides applied)
 
 
@@ -99,7 +98,7 @@ def load_scenario(scenario_path: Path) -> ScenarioConfig:
         raise IOConfigError("Scenario YAML must be a mapping at the top-level.")
 
     # Load catalogs packaged with the library
-    constraints_catalog = _load_packaged_yaml("fbdam.config", "catalogs/constraints_v1.0.yaml")
+    constraints_catalog = _load_packaged_yaml("fbdam.config", "catalogs/constraints_v1.1.yaml")
     objectives_catalog = _load_packaged_yaml("fbdam.config", "catalogs/objectives_v1.0.yaml")
 
     # Materialize constraints/objectives
@@ -176,7 +175,7 @@ def _read_yaml_file(path: Path) -> Dict[str, Any]:
 def _load_packaged_yaml(package: str, relative: str) -> Dict[str, Any]:
     """
     Load a YAML resource embedded in the package (declared via package-data).
-    Example: package="fbdam.config", relative="catalogs/constraints_v1.0.yaml"
+    Example: package="fbdam.config", relative="catalogs/constraints_v1.1.yaml"
     """
     try:
         res = resources.files(package).joinpath(relative)
@@ -223,14 +222,13 @@ def _materialize_constraints(
         if not cat:
             raise IOConfigError(f"{context}[{i}]: unknown constraint ref '{ref}'.")
 
-        ctype = _require_str(cat, "type", context=f"{context}[{i}::{ref}]")
         base_params = _require_mapping(cat, "params", default={}, context=f"{context}[{i}::{ref}]")
         override = entry.get("override", {}) or {}
         if not isinstance(override, dict):
             raise IOConfigError(f"{context}[{i}::{ref}]: 'override' must be a mapping if provided.")
 
         merged = _deep_merge(base_params, override)
-        materialized.append(MaterializedConstraint(id=ref, type=ctype, params=merged))
+        materialized.append(MaterializedConstraint(id=ref, params=merged))
 
     return materialized
 

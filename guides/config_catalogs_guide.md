@@ -4,12 +4,11 @@
 ---
 
 ## 🧩 1. ¿Qué son los catálogos?
-Los **catálogos** (`constraints_v1.0.yaml`, `objectives_v1.0.yaml`) definen bloques **reutilizables y versionados** del modelo:  
+Los **catálogos** (`constraints_v1.1.yaml`, `objectives_v1.0.yaml`) definen bloques **reutilizables y versionados** del modelo:
 restricciones y objetivos que luego se combinan en los **escenarios**.
 
 Cada bloque incluye:
-- `id`: identificador estable (`snake_case`)
-- `type` o `name`: nombre del *handler* Python (en los registros)
+- `id`: identificador estable (`snake_case`) y equivalente al nombre registrado en código.
 - `params`: parámetros configurables
 - `description`: explicación semántica
 - `uri` (opcional): enlace a una ontología o documento de referencia
@@ -22,7 +21,7 @@ Permiten validar automáticamente los catálogos con herramientas estándar:
 
 ```bash
 pip install jsonschema
-jsonschema -i src/fbdam/config/catalogs/constraints_v1.0.yaml src/fbdam/config/schema/constraints_schema.yaml
+jsonschema -i src/fbdam/config/catalogs/constraints_v1.1.yaml src/fbdam/config/schema/constraints_schema.yaml
 ```
 
 También puedes cargar y validar desde Python:
@@ -32,7 +31,7 @@ from jsonschema import validate
 import yaml
 
 schema = yaml.safe_load(open('src/fbdam/config/schema/constraints_schema.yaml'))
-data = yaml.safe_load(open('src/fbdam/config/catalogs/constraints_v1.0.yaml'))
+data = yaml.safe_load(open('src/fbdam/config/catalogs/constraints_v1.1.yaml'))
 validate(instance=data, schema=schema)
 ```
 
@@ -45,9 +44,9 @@ Cada **escenario YAML** importa por referencia las piezas del catálogo:
 ```yaml
 model:
   constraints:
-    - ref: util_link
-    - ref: household_floor
-      override: { U_floor: 0.80 }
+    - ref: nutrition_utility_mapping
+    - ref: household_adequacy_floor
+      override: { use_slack: true }
   objectives:
     - ref: sum_utility
 ```
@@ -73,7 +72,7 @@ maintainer: pol_gil
 - **maintainer:** autor o responsable
 
 Cuando cambies la lógica (no solo texto):
-- crea `constraints_v1.1.yaml` o `objectives_v1.1.yaml`
+- crea `constraints_v1.2.yaml` o `objectives_v1.1.yaml`
 - cambia `status: draft`
 - documenta el cambio en el control de versiones WISER
 
@@ -84,7 +83,7 @@ Cuando cambies la lógica (no solo texto):
 Supón que creas una nueva función en `constraints.py`:
 
 ```python
-@register_constraint("household_floor")
+@register_constraint("household_adequacy_floor")
 def add_household_floor(m, params):
     U_floor = float(params.get("U_floor", 0.85))
     def rule(m,h): return sum(m.u[n,h] for n in m.N) >= len(m.N) * U_floor
@@ -95,8 +94,7 @@ Entonces en el catálogo:
 
 ```yaml
 constraints:
-  - id: household_floor
-    type: household_floor
+  - id: household_adequacy_floor
     description: "Minimum average utility per household"
     params: { U_floor: 0.85 }
 ```
@@ -104,7 +102,7 @@ constraints:
 Y en un escenario, podrías modificarlo:
 
 ```yaml
-- ref: household_floor
+- ref: household_adequacy_floor
   override: { U_floor: 0.90 }
 ```
 
@@ -124,7 +122,7 @@ src/
 └─ fbdam/
    └─ config/
       ├─ catalogs/
-      │  ├─ constraints_v1.0.yaml
+      │  ├─ constraints_v1.1.yaml
       │  └─ objectives_v1.0.yaml
       └─ schema/
          ├─ constraints_schema.yaml
