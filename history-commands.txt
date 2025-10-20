@@ -19,7 +19,7 @@ pytest tests/test_model_backbone.py
 pytest tests/test_smoke.py
 
 # Analysis
-python analysis/kpi_table.py --datasets ds-a --configs dials-efficiency dials-balanced dials-fairness 
+python analysis/kpi_table.py --datasets ds-a --configs dials-efficiency dials-balanced dials-fairness --output "analysis/tables/kpis.csv"
 
 # Plots
 python analysis/plot_from_solution_dir.py "runs/ds-a/dials-balanced" "analysis/plots/demo_allocated_food_ds-a_balanced.png"

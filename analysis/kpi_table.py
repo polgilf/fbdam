@@ -199,6 +199,11 @@ def _parse_args() -> argparse.Namespace:
         default=Path("analysis") / "kpis.yaml",
         help="Path to the KPI catalog (defaults to analysis/kpis.yaml).",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional destination to write the KPI table as CSV.",
+    )
     return parser.parse_args()
 
 
@@ -210,6 +215,10 @@ def main() -> None:
         runs_root=args.runs_dir,
         catalog_path=args.catalog,
     )
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        dataframe.to_csv(args.output)
+        print(f"KPI table saved to {args.output}")
     with pd.option_context("display.max_rows", None, "display.max_columns", None):
         print(dataframe)
 
