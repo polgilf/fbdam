@@ -17,3 +17,7 @@ python utilities/clear_path.py outputs/demo
 pytest tests/test_model_backbone.py::test_purchase_budget_enforces_allocation_of_purchases 
 
 pytest tests/test_smoke.py
+
+# Plots
+python analysis/plot_from_solution_dir.py "outputs/demo/20251020T123212Z_demo_efficiency" "analysis/plots/demo_allocated_food.png"
+CSV: outputs\demo\20251020T123212Z_demo_efficiency\solution.csv
