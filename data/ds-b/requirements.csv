@@ -1,5 +1,10 @@
 household_id,nutrient_id,requirement
-A1,cal,1600
-A1,prot,45
-A2,cal,1700
-A2,prot,50
+H1,cal,21000
+H1,prot,500
+H1,calc,10000
+H2,cal,60000
+H2,prot,1200
+H2,calc,25000
+H3,cal,95000
+H3,prot,2200
+H3,calc,40000

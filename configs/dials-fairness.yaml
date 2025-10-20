@@ -1,0 +1,26 @@
+version: v1
+name: Alpha fairness dial at 0.4
+model:
+  description: |
+    Base model with fairness and adequacy constraints. This configuration
+    keeps the structure fixed while balancing dials.
+  constraints:
+    - ref: nutrition_utility_mapping
+    - ref: item_supply_limit
+    - ref: purchase_budget_limit
+    - ref: fairshare_deviation_identity
+    - ref: item_equity_aggregate_cap
+    - ref: household_equity_aggregate_cap
+    - ref: pairwise_equity_cap
+    - ref: household_adequacy_floor
+    - ref: nutrient_adequacy_floor
+    - ref: pairwise_adequacy_floor
+  objectives:
+    - ref: sum_utility
+  dials:
+    alpha: 0.2
+    beta: 0.2
+    rho: 0.2
+    gamma: 0.9
+    kappa: 0.9
+    omega: 0.9

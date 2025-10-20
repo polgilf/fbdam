@@ -1,10 +1,11 @@
 # From the repository root
 for scenario in \
-  scenarios/ds-a_alpha-0.4.yaml \
-  scenarios/ds-a_alpha-0.6.yaml \
-  scenarios/ds-b_alpha-0.4.yaml \
-  scenarios/ds-b_alpha-0.6.yaml
+  scenarios/ds-a_dials-balanced.yaml \
+  scenarios/ds-a_dials-efficiency.yaml \
+  scenarios/ds-a_dials-fairness.yaml \
+  #scenarios/ds-b_dials-balanced.yaml \
+  #scenarios/ds-b_dials-efficiency.yaml
   do
     python -m fbdam.engine.run run "$scenario" --profile time-limited
-    python -m fbdam.engine.run run "$scenario" --profile gap-limited
+    # python -m fbdam.engine.run run "$scenario" --profile gap-limited
   done
