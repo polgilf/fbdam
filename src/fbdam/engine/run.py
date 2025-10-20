@@ -1,17 +1,9 @@
-"""
-run.py — CLI entry point for FBDAM
-----------------------------------
-Orchestrates the end-to-end pipeline:
-  1) Load scenario (YAML) → validated config
-  2) Build model (Pyomo) from config
-  3) Solve model with selected solver/backend
-  4) Generate outputs (reports, tables, metadata)
+"""CLI entry point for orchestrating the FBDAM pipeline.
 
-This is a minimal, production-ready skeleton:
-- Typer-based CLI
-- Clear error handling and exit codes
-- Non-intrusive logging with Rich
-- Paths resolved relative to the scenario file
+The command defined here drives the full optimisation workflow and now
+distinguishes between feasible and infeasible solves, surfacing diagnostic
+information without aborting the run.  Artifacts are always produced, even
+when the solver cannot find a feasible solution.
 """
 
 from __future__ import annotations
@@ -172,20 +164,47 @@ def run(
         )
 
         manifest_path = run_dir / "manifest.json"
-        console.print(
-            Panel.fit(
-                "\n".join(
-                    [
-                        "[bold green]Pipeline finished successfully[/]",
-                        f"Run ID: [bold]{run_identifier}[/]",
-                        f"Artifacts dir: {run_dir}",
-                        f"Manifest entries: {len(manifest.get('artifacts', []))}",
-                        f"Manifest path: {manifest_path}",
-                    ]
-                ),
-                border_style="green",
+        is_feasible = results.get("is_feasible", True)
+        termination = results.get("termination", "unknown")
+        status = results.get("status", "unknown")
+
+        if is_feasible:
+            panel_lines = [
+                "[bold green]Pipeline finished successfully[/]",
+                f"Run ID: [bold]{run_identifier}[/]",
+                f"Artifacts dir: {run_dir}",
+                f"Manifest entries: {len(manifest.get('artifacts', []))}",
+                f"Manifest path: {manifest_path}",
+            ]
+            console.print(
+                Panel.fit(
+                    "\n".join(panel_lines),
+                    border_style="green",
+                )
             )
-        )
+        else:
+            solver_log_display = "N/A"
+            if log_relative_path:
+                solver_log_display = str(run_dir / log_relative_path)
+            mps_display = str(run_dir / "model.mps") if export_mps else "N/A"
+            panel_lines = [
+                f"Termination: {termination}",
+                f"Status: {status}",
+                "",
+                "[dim]Diagnostic artifacts saved:[/]",
+                f"Run ID: [bold]{run_identifier}[/]",
+                f"Artifacts dir: {run_dir}",
+                f"Solver log: {solver_log_display}",
+                f"Model MPS: {mps_display}",
+                f"Manifest path: {manifest_path}",
+            ]
+            console.print(
+                Panel.fit(
+                    "\n".join(panel_lines),
+                    title="[bold yellow]Model is INFEASIBLE[/]",
+                    border_style="yellow",
+                )
+            )
     except IOConfigError as e:
         console.print(Panel.fit(f"[bold red]Scenario/IO error[/]\n{e}", border_style="red"))
         raise typer.Exit(code=2)

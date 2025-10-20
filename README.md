@@ -105,6 +105,21 @@ After installation, the `fbdam` console script is available on your PATH.
    All generated artifacts (reports, KPIs, manifest, etc.) are written underneath
 `--outputs`. See `outputs/example/` for a reference run.
 
+## Handling infeasible solutions
+
+Sometimes the configured dials or budgets make the optimisation problem
+infeasible. FBDAM keeps the pipeline running so you can analyse the run:
+
+- The CLI emits a yellow warning panel summarising the solver termination
+  condition and pointing to saved artifacts.
+- `report.md` highlights the infeasibility, suppresses KPIs, and lists
+  troubleshooting ideas.
+- `solver_report.json`, `solver.log`, and (when enabled) `model.mps` provide
+  low-level diagnostics for deeper analysis.
+
+Try `scenarios/demo_infeasible.yaml` to generate an intentionally infeasible
+run that exercises the new diagnostics.
+
 ### End-to-end demo using `params.yaml`
 
 The repository also ships with `scenarios/demo-tnu.yaml`, an end-to-end baseline

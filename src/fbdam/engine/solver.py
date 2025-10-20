@@ -1,15 +1,13 @@
-"""
-solver.py — Solver interface
-----------------------------
-Handles solver creation, configuration, and execution for FBDAM models.
+"""Solver interface and resilience helpers for FBDAM.
 
-Design:
-- Preferred backend: appsi_highs (fast, modern Pyomo interface)
-- Fallback backend: classic highs (via executable in PATH)
-- Captures solver metadata (status, termination, runtime, etc.)
-- Returns a structured result dictionary for reporting.
+This module centralises solver selection and execution while ensuring that
+infeasible or otherwise unsuccessful solves are reported gracefully.  The
+returned payload always contains diagnostic metadata, including a boolean
+``is_feasible`` flag, so downstream components can continue producing
+artifacts even when the optimizer fails to find a solution.
 
-Typical usage:
+Typical usage::
+
     from fbdam.engine.solver import solve_model
     res = solve_model(model, solver_name="appsi_highs", options={"time_limit": 10})
 """
@@ -18,10 +16,13 @@ from __future__ import annotations
 import inspect
 import time
 import warnings
+import logging
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 import pyomo.environ as pyo
 
+
+LOGGER = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------
 # Solver selection and execution
@@ -51,53 +52,68 @@ def solve_model(
     if solver is None:
         return _mock_solve(model, resolved_name, time.time() - start)
 
-    results = _invoke_solver(solver, model)
+    try:
+        results = _invoke_solver(solver, model)
+        elapsed = time.time() - start
+    except Exception as exc:  # pragma: no cover - defensive safety net
+        LOGGER.error("Solver invocation failed: %s", exc, exc_info=True)
+        elapsed = time.time() - start
+        return _build_error_report(resolved_name, elapsed, str(exc))
+
     elapsed = time.time() - start
 
-    # Extract solution info - handle both APPSI and classic interfaces
-    solver_info = {
+    termination_raw, status_raw = _extract_status_terms(resolved_name, results)
+    status = _determine_status(termination_raw, status_raw)
+    is_feasible = _check_feasibility(termination_raw, status)
+
+    best_feasible = getattr(results, "best_feasible_objective", None)
+    best_bound = getattr(results, "best_objective_bound", None)
+
+    if hasattr(results, "solver"):
+        solver_section = getattr(results, "solver")
+        best_feasible = getattr(solver_section, "best_objective", best_feasible)
+        best_bound = getattr(solver_section, "best_bound", best_bound)
+        if best_bound is None:
+            best_bound = getattr(solver_section, "best_objective_bound", None)
+        if best_bound is None:
+            best_bound = getattr(solver_section, "upper_bound", None)
+        if best_feasible is None:
+            best_feasible = getattr(solver_section, "primal_bound", None)
+        gap_value = getattr(solver_section, "mip_relative_gap", None)
+    else:
+        gap_value = getattr(results, "gap", None)
+
+    if not is_feasible and status == "time_limit" and best_feasible is not None:
+        # A feasible incumbent is available even though the solver hit a limit.
+        is_feasible = True
+
+    if not is_feasible:
+        LOGGER.warning("Solver reported infeasible outcome: termination=%s status=%s", termination_raw, status)
+    else:
+        LOGGER.info("Solver finished with termination=%s status=%s", termination_raw, status)
+
+    solver_info: Dict[str, Any] = {
         "solver": resolved_name,
         "elapsed_sec": round(elapsed, 4),
+        "termination": termination_raw,
+        "status": status,
+        "is_feasible": is_feasible,
+        "error_message": None,
     }
-    
-    # APPSI interface (results has direct attributes)
-    if resolved_name == "appsi_highs" and hasattr(results, "termination_condition"):
-        solver_info["termination"] = str(results.termination_condition)
-        # APPSI doesn't have a separate 'status' - use termination_condition
-        solver_info["status"] = "ok" if str(results.termination_condition) == "optimal" else str(results.termination_condition)
-        solver_info["best_feasible_objective"] = getattr(results, "best_feasible_objective", None)
-        solver_info["best_objective_bound"] = getattr(results, "best_objective_bound", None)
-        # Compute gap if both values are available
-        if solver_info["best_feasible_objective"] is not None and solver_info["best_objective_bound"] is not None:
-            feasible = solver_info["best_feasible_objective"]
-            bound = solver_info["best_objective_bound"]
-            if feasible != 0:
-                gap = abs(feasible - bound) / abs(feasible)
-                solver_info["gap"] = round(gap, 6)
-            else:
-                solver_info["gap"] = None
-        else:
-            solver_info["gap"] = None
 
-    # Classic interface (results.solver.*)
-    elif hasattr(results, "solver"):
-        solver_info["termination"] = str(results.solver.termination_condition)
-        solver_info["status"] = str(results.solver.status)
-    # Fallback
-    else:
-        solver_info["termination"] = "unknown"
-        solver_info["status"] = "unknown"
+    solver_info["best_feasible_objective"] = best_feasible
+    solver_info["best_objective_bound"] = best_bound
 
-    # Compute objective value if available
+    gap = _compute_gap(best_feasible, best_bound, gap_value)
+    solver_info["gap"] = gap
+
     try:
-        obj_val = pyo.value(model.OBJ)
-    except Exception:
+        obj_val = pyo.value(model.OBJ, exception=False)
+    except Exception:  # pragma: no cover - safety
         obj_val = None
     solver_info["objective_value"] = obj_val
 
-    # Variable dump (flat dict)
-    var_values = _extract_variable_values(model)
-    solver_info["variables"] = var_values
+    solver_info["variables"] = _extract_variable_values(model)
 
     return solver_info
 
@@ -213,22 +229,31 @@ def _mock_solve(model: pyo.ConcreteModel, solver_name: str, elapsed: float) -> D
         "solver": solver_name,
         "elapsed_sec": round(elapsed, 4),
         "termination": "not attempted",
+        "status": "mock",
+        "is_feasible": True,
+        "error_message": None,
     }
 
     try:
-        solver_info["objective_value"] = pyo.value(model.OBJ)
-    except Exception:
+        solver_info["objective_value"] = pyo.value(model.OBJ, exception=False)
+    except Exception:  # pragma: no cover - defensive
         solver_info["objective_value"] = None
 
     solver_info["variables"] = _extract_variable_values(model)
     solver_info["gap"] = None
-    solver_info["best_bound"] = None
+    solver_info["best_feasible_objective"] = solver_info["objective_value"]
+    solver_info["best_objective_bound"] = solver_info["objective_value"]
     return solver_info
 
 
-def _extract_variable_values(model: pyo.ConcreteModel) -> Dict[str, float]:
-    """Return a flat mapping of variable names → values."""
-    values: Dict[str, float] = {}
+def _extract_variable_values(model: pyo.ConcreteModel) -> Dict[str, Optional[float]]:
+    """Return a flat mapping of variable names → values.
+
+    Uninitialised variables yield ``None`` so that callers can inspect partial
+    solver states without raising exceptions.
+    """
+
+    values: Dict[str, Optional[float]] = {}
     for var in model.component_objects(pyo.Var, active=True):
         name = var.getname()
         for idx in var:
@@ -253,6 +278,125 @@ def print_solver_summary(results: Dict[str, Any]) -> None:
     print(f"Time (s):      {results.get('elapsed_sec')}")
     print(f"Objective val: {results.get('objective_value')}")
     print("======================\n")
+
+
+def _extract_status_terms(resolved_name: str, results: Any) -> Tuple[str, Optional[str]]:
+    """Extract termination and raw status strings from solver results."""
+
+    termination = "unknown"
+    status: Optional[str] = None
+
+    if resolved_name == "appsi_highs" and hasattr(results, "termination_condition"):
+        termination = str(results.termination_condition)
+        raw_status = getattr(results, "status", None)
+        status = str(raw_status) if raw_status is not None else None
+    elif hasattr(results, "solver"):
+        solver_section = getattr(results, "solver")
+        if hasattr(solver_section, "termination_condition"):
+            termination = str(solver_section.termination_condition)
+        if hasattr(solver_section, "status"):
+            status = str(solver_section.status)
+    elif hasattr(results, "termination_condition"):
+        termination = str(results.termination_condition)
+
+    return termination, status
+
+
+def _determine_status(termination: str, raw_status: Optional[str]) -> str:
+    """Normalise solver status into a short, user-friendly token.
+
+    Args:
+        termination: Termination condition string from the solver.
+        raw_status: Optional raw status string reported by the solver backend.
+
+    Returns:
+        Canonical status string such as ``"ok"`` or ``"infeasible"``.
+    """
+
+    for candidate in (raw_status, termination):
+        if not candidate:
+            continue
+        lowered = candidate.lower()
+        if "optimal" in lowered:
+            return "ok"
+        if "infeasible" in lowered:
+            return "infeasible"
+        if "unbounded" in lowered:
+            return "unbounded"
+        if "limit" in lowered or "timeout" in lowered:
+            return "time_limit"
+
+    if raw_status:
+        return raw_status.lower()
+    if termination:
+        return termination.lower()
+    return "unknown"
+
+
+def _check_feasibility(termination: str, status: str) -> bool:
+    """Determine whether the solve is considered feasible.
+
+    Args:
+        termination: Termination condition string (lower-cased).
+        status: Normalised status string from :func:`_determine_status`.
+
+    Returns:
+        ``True`` when the solver produced a feasible solution, ``False``
+        otherwise.  The check errs on the side of caution and defaults to
+        ``False`` when unsure.
+    """
+
+    termination = termination or ""
+    status = status or ""
+    tokens = f"{termination} {status}".lower()
+
+    if "infeasible" in tokens or "unbounded" in tokens:
+        return False
+    if "optimal" in tokens or status == "ok":
+        return True
+    if "feasible" in termination and "infeasible" not in termination:
+        return True
+    return False
+
+
+def _build_error_report(solver_name: str, elapsed: float, message: str) -> Dict[str, Any]:
+    """Construct a consistent error payload when solver execution fails."""
+
+    LOGGER.error("Building solver error report for %s: %s", solver_name, message)
+    return {
+        "solver": solver_name,
+        "elapsed_sec": round(elapsed, 4),
+        "termination": "error",
+        "status": "error",
+        "is_feasible": False,
+        "objective_value": None,
+        "best_feasible_objective": None,
+        "best_objective_bound": None,
+        "gap": None,
+        "variables": {},
+        "error_message": message,
+    }
+
+
+def _compute_gap(best_feasible: Optional[float], best_bound: Optional[float], gap_value: Optional[float]) -> Optional[float]:
+    """Compute a relative optimality gap when the backend does not provide one."""
+
+    if gap_value is not None:
+        try:
+            return round(float(gap_value), 6)
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            return None
+
+    if best_feasible is None or best_bound is None:
+        return None
+
+    try:
+        if best_feasible == 0:
+            return None
+        gap = abs(best_feasible - best_bound) / abs(best_feasible)
+        return round(float(gap), 6)
+    except Exception:  # pragma: no cover - defensive
+        return None
 
 # ---------------------------------------------------------------------
 # Utility: quick print summary
