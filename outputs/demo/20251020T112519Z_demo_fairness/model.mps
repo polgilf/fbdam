@@ -20,6 +20,14 @@ ROWS
  L  c_u_StockBalance(milk)_
  L  c_u_StockBalance(rice)_
  L  c_u_PurchaseBudget_
+ L  c_u_PurchaseActivation(apples)_
+ L  c_u_PurchaseActivation(beans)_
+ L  c_u_PurchaseActivation(milk)_
+ L  c_u_PurchaseActivation(rice)_
+ L  c_u_PurchaseAllocationEnforcement(apples)_
+ L  c_u_PurchaseAllocationEnforcement(beans)_
+ L  c_u_PurchaseAllocationEnforcement(milk)_
+ L  c_u_PurchaseAllocationEnforcement(rice)_
  E  c_e_DeviationIdentity(apples_H1)_
  E  c_e_DeviationIdentity(apples_H2)_
  E  c_e_DeviationIdentity(apples_H3)_
@@ -71,61 +79,73 @@ COLUMNS
      x(apples_H1) c_u_U_link(calc_H1)_ -0.0060000000000000001
      x(apples_H1) c_u_U_link(prot_H1)_ -0.0040000000000000001
      x(apples_H1) c_u_StockBalance(apples)_ 1
+     x(apples_H1) c_u_PurchaseAllocationEnforcement(apples)_ -1
      x(apples_H1) c_e_DeviationIdentity(apples_H1)_ -1
      x(apples_H2) c_u_U_link(cal_H2)_ -0.0086666666666666663
      x(apples_H2) c_u_U_link(calc_H2)_ -0.0024000000000000002
      x(apples_H2) c_u_U_link(prot_H2)_ -0.0016666666666666668
      x(apples_H2) c_u_StockBalance(apples)_ 1
+     x(apples_H2) c_u_PurchaseAllocationEnforcement(apples)_ -1
      x(apples_H2) c_e_DeviationIdentity(apples_H2)_ -1
      x(apples_H3) c_u_U_link(cal_H3)_ -0.0054736842105263155
      x(apples_H3) c_u_U_link(calc_H3)_ -0.0015
      x(apples_H3) c_u_U_link(prot_H3)_ -0.00090909090909090909
      x(apples_H3) c_u_StockBalance(apples)_ 1
+     x(apples_H3) c_u_PurchaseAllocationEnforcement(apples)_ -1
      x(apples_H3) c_e_DeviationIdentity(apples_H3)_ -1
      x(beans_H1) c_u_U_link(cal_H1)_ -0.15714285714285714
      x(beans_H1) c_u_U_link(calc_H1)_ -0.011000000000000001
      x(beans_H1) c_u_U_link(prot_H1)_ -0.41999999999999998
      x(beans_H1) c_u_StockBalance(beans)_ 1
+     x(beans_H1) c_u_PurchaseAllocationEnforcement(beans)_ -1
      x(beans_H1) c_e_DeviationIdentity(beans_H1)_ -1
      x(beans_H2) c_u_U_link(cal_H2)_ -0.055
      x(beans_H2) c_u_U_link(calc_H2)_ -0.0044000000000000003
      x(beans_H2) c_u_U_link(prot_H2)_ -0.17500000000000002
      x(beans_H2) c_u_StockBalance(beans)_ 1
+     x(beans_H2) c_u_PurchaseAllocationEnforcement(beans)_ -1
      x(beans_H2) c_e_DeviationIdentity(beans_H2)_ -1
      x(beans_H3) c_u_U_link(cal_H3)_ -0.034736842105263156
      x(beans_H3) c_u_U_link(calc_H3)_ -0.0027500000000000003
      x(beans_H3) c_u_U_link(prot_H3)_ -0.095454545454545459
      x(beans_H3) c_u_StockBalance(beans)_ 1
+     x(beans_H3) c_u_PurchaseAllocationEnforcement(beans)_ -1
      x(beans_H3) c_e_DeviationIdentity(beans_H3)_ -1
      x(milk_H1) c_u_U_link(cal_H1)_ -0.030476190476190476
      x(milk_H1) c_u_U_link(calc_H1)_ -0.12000000000000001
      x(milk_H1) c_u_U_link(prot_H1)_ -0.066000000000000003
      x(milk_H1) c_u_StockBalance(milk)_ 1
+     x(milk_H1) c_u_PurchaseAllocationEnforcement(milk)_ -1
      x(milk_H1) c_e_DeviationIdentity(milk_H1)_ -1
      x(milk_H2) c_u_U_link(cal_H2)_ -0.010666666666666668
      x(milk_H2) c_u_U_link(calc_H2)_ -0.048000000000000001
      x(milk_H2) c_u_U_link(prot_H2)_ -0.0275
      x(milk_H2) c_u_StockBalance(milk)_ 1
+     x(milk_H2) c_u_PurchaseAllocationEnforcement(milk)_ -1
      x(milk_H2) c_e_DeviationIdentity(milk_H2)_ -1
      x(milk_H3) c_u_U_link(cal_H3)_ -0.0067368421052631583
      x(milk_H3) c_u_U_link(calc_H3)_ -0.030000000000000002
      x(milk_H3) c_u_U_link(prot_H3)_ -0.014999999999999999
      x(milk_H3) c_u_StockBalance(milk)_ 1
+     x(milk_H3) c_u_PurchaseAllocationEnforcement(milk)_ -1
      x(milk_H3) c_e_DeviationIdentity(milk_H3)_ -1
      x(rice_H1) c_u_U_link(cal_H1)_ -0.17142857142857143
      x(rice_H1) c_u_U_link(calc_H1)_ -0.0030000000000000001
      x(rice_H1) c_u_U_link(prot_H1)_ -0.14000000000000001
      x(rice_H1) c_u_StockBalance(rice)_ 1
+     x(rice_H1) c_u_PurchaseAllocationEnforcement(rice)_ -1
      x(rice_H1) c_e_DeviationIdentity(rice_H1)_ -1
      x(rice_H2) c_u_U_link(cal_H2)_ -0.060000000000000005
      x(rice_H2) c_u_U_link(calc_H2)_ -0.0012000000000000001
      x(rice_H2) c_u_U_link(prot_H2)_ -0.058333333333333334
      x(rice_H2) c_u_StockBalance(rice)_ 1
+     x(rice_H2) c_u_PurchaseAllocationEnforcement(rice)_ -1
      x(rice_H2) c_e_DeviationIdentity(rice_H2)_ -1
      x(rice_H3) c_u_U_link(cal_H3)_ -0.037894736842105266
      x(rice_H3) c_u_U_link(calc_H3)_ -0.00075000000000000002
      x(rice_H3) c_u_U_link(prot_H3)_ -0.031818181818181815
      x(rice_H3) c_u_StockBalance(rice)_ 1
+     x(rice_H3) c_u_PurchaseAllocationEnforcement(rice)_ -1
      x(rice_H3) c_e_DeviationIdentity(rice_H3)_ -1
      u(cal_H1) OBJ 1
      u(cal_H1) c_u_U_link(cal_H1)_ 1
@@ -282,6 +302,8 @@ COLUMNS
      u(prot_H3) c_l_PairFloor(prot_H3)_ 0.90000000000000002
      y(apples) c_u_StockBalance(apples)_ -1
      y(apples) c_u_PurchaseBudget_ 1.1000000000000001
+     y(apples) c_u_PurchaseActivation(apples)_ 1
+     y(apples) c_u_PurchaseAllocationEnforcement(apples)_ 1
      y(apples) c_e_DeviationIdentity(apples_H1)_ 0.111111111
      y(apples) c_e_DeviationIdentity(apples_H2)_ 0.33333333300000001
      y(apples) c_e_DeviationIdentity(apples_H3)_ 0.55555555599999995
@@ -294,6 +316,8 @@ COLUMNS
      y(apples) c_u_DeviationPairCap(apples_H3)_ -0.10000000000000001
      y(beans) c_u_StockBalance(beans)_ -1
      y(beans) c_u_PurchaseBudget_ 1.2
+     y(beans) c_u_PurchaseActivation(beans)_ 1
+     y(beans) c_u_PurchaseAllocationEnforcement(beans)_ 1
      y(beans) c_e_DeviationIdentity(beans_H1)_ 0.111111111
      y(beans) c_e_DeviationIdentity(beans_H2)_ 0.33333333300000001
      y(beans) c_e_DeviationIdentity(beans_H3)_ 0.55555555599999995
@@ -306,6 +330,8 @@ COLUMNS
      y(beans) c_u_DeviationPairCap(beans_H3)_ -0.10000000000000001
      y(milk) c_u_StockBalance(milk)_ -1
      y(milk) c_u_PurchaseBudget_ 0.90000000000000002
+     y(milk) c_u_PurchaseActivation(milk)_ 1
+     y(milk) c_u_PurchaseAllocationEnforcement(milk)_ 1
      y(milk) c_e_DeviationIdentity(milk_H1)_ 0.111111111
      y(milk) c_e_DeviationIdentity(milk_H2)_ 0.33333333300000001
      y(milk) c_e_DeviationIdentity(milk_H3)_ 0.55555555599999995
@@ -318,6 +344,8 @@ COLUMNS
      y(milk) c_u_DeviationPairCap(milk_H3)_ -0.10000000000000001
      y(rice) c_u_StockBalance(rice)_ -1
      y(rice) c_u_PurchaseBudget_ 1
+     y(rice) c_u_PurchaseActivation(rice)_ 1
+     y(rice) c_u_PurchaseAllocationEnforcement(rice)_ 1
      y(rice) c_e_DeviationIdentity(rice_H1)_ 0.111111111
      y(rice) c_e_DeviationIdentity(rice_H2)_ 0.33333333300000001
      y(rice) c_e_DeviationIdentity(rice_H3)_ 0.55555555599999995
@@ -328,6 +356,14 @@ COLUMNS
      y(rice) c_u_DeviationPairCap(rice_H1)_ -0.10000000000000001
      y(rice) c_u_DeviationPairCap(rice_H2)_ -0.10000000000000001
      y(rice) c_u_DeviationPairCap(rice_H3)_ -0.10000000000000001
+     y_active(apples) c_u_PurchaseActivation(apples)_ -9.0909090909090899
+     y_active(apples) c_u_PurchaseAllocationEnforcement(apples)_ 8
+     y_active(beans) c_u_PurchaseActivation(beans)_ -8.3333333333333339
+     y_active(beans) c_u_PurchaseAllocationEnforcement(beans)_ 12
+     y_active(milk) c_u_PurchaseActivation(milk)_ -11.111111111111111
+     y_active(milk) c_u_PurchaseAllocationEnforcement(milk)_ 10
+     y_active(rice) c_u_PurchaseActivation(rice)_ -10
+     y_active(rice) c_u_PurchaseAllocationEnforcement(rice)_ 20
      dpos(apples_H1) c_e_DeviationIdentity(apples_H1)_ 1
      dpos(apples_H1) c_u_DeviationItemCap(apples)_ 1
      dpos(apples_H1) c_u_DeviationHouseholdCap(H1)_ 1
@@ -439,6 +475,14 @@ RHS
      RHS c_u_StockBalance(milk)_ 10
      RHS c_u_StockBalance(rice)_ 20
      RHS c_u_PurchaseBudget_ 10
+     RHS c_u_PurchaseActivation(apples)_ 0
+     RHS c_u_PurchaseActivation(beans)_ 0
+     RHS c_u_PurchaseActivation(milk)_ 0
+     RHS c_u_PurchaseActivation(rice)_ 0
+     RHS c_u_PurchaseAllocationEnforcement(apples)_ 0
+     RHS c_u_PurchaseAllocationEnforcement(beans)_ 0
+     RHS c_u_PurchaseAllocationEnforcement(milk)_ 0
+     RHS c_u_PurchaseAllocationEnforcement(rice)_ 0
      RHS c_e_DeviationIdentity(apples_H1)_ -0.88888888799999999
      RHS c_e_DeviationIdentity(apples_H2)_ -2.6666666640000001
      RHS c_e_DeviationIdentity(apples_H3)_ -4.4444444479999996
@@ -532,6 +576,10 @@ BOUNDS
  LO BOUND y(beans) 0
  LO BOUND y(milk) 0
  LO BOUND y(rice) 0
+ BV BOUND y_active(apples)
+ BV BOUND y_active(beans)
+ BV BOUND y_active(milk)
+ BV BOUND y_active(rice)
  LO BOUND dpos(apples_H1) 0
  LO BOUND dpos(apples_H2) 0
  LO BOUND dpos(apples_H3) 0

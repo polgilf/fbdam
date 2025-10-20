@@ -33,40 +33,40 @@
       {
         "id": "item_equity_aggregate_cap",
         "params": {
-          "alpha": 0.1
+          "alpha": 0.5
         }
       },
       {
         "id": "household_equity_aggregate_cap",
         "params": {
-          "beta": 0.1
+          "beta": 0.5
         }
       },
       {
         "id": "pairwise_equity_cap",
         "params": {
-          "rho": 0.1
+          "rho": 0.5
         }
       },
       {
         "id": "household_adequacy_floor",
         "params": {
           "use_slack": false,
-          "omega": 0.9
+          "omega": 0.5
         }
       },
       {
         "id": "nutrient_adequacy_floor",
         "params": {
           "use_slack": false,
-          "gamma": 0.9
+          "gamma": 0.5
         }
       },
       {
         "id": "pairwise_adequacy_floor",
         "params": {
           "use_slack": false,
-          "kappa": 0.9
+          "kappa": 0.5
         }
       }
     ],
@@ -116,7 +116,7 @@
   },
   "metadata": {
     "scenario_path": "C:\\Users\\Pol\\git\\fbdam\\scenarios\\demo.yaml",
-    "generated_at": "2025-10-20T10:47:01Z",
-    "run_id": "20251020T104701Z_demo"
+    "generated_at": "2025-10-20T11:25:27Z",
+    "run_id": "20251020T112527Z_demo"
   }
 }

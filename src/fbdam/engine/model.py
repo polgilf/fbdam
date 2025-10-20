@@ -245,9 +245,15 @@ def _build_variables(
 
     # Purchases y[i] >= 0 (augment donated stock)
     m.y = pyo.Var(m.I, domain=pyo.NonNegativeReals, doc="Purchased quantity of item i")
+                
+    # Binary indicator: 1 if purchases are active for item i.
+    m.y_active = pyo.Var(m.I, domain=pyo.Binary, doc="Indicator for activating purchases of item i")
+
     if not allow_purchases:
         for var in m.y.values():
             var.fix(0.0)
+        for var in m.y_active.values():
+            var.fix(0)
 
     # Optional deviation variables used by fairness constraints (kept generic)
     m.dpos = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Positive deviation helper")

@@ -226,10 +226,32 @@ def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
 
     budget_value = float(budget)
 
-    def rule(model):
+    def _budget_rule(model):
         return sum(model.cost[i] * model.y[i] for i in model.I) <= budget_value
 
-    m.PurchaseBudget = pyo.Constraint(rule=rule)
+    m.PurchaseBudget = pyo.Constraint(rule=_budget_rule)
+
+    # Enforce that any activated purchases are fully allocated.
+    EPS_COST = 1e-9
+
+    def _max_purchase_for_item(model, item_id: str) -> float:
+        unit_cost = float(model.cost[item_id])
+        if budget_value <= 0:
+            return 0.0
+        denom = unit_cost if unit_cost > EPS_COST else EPS_COST
+        return budget_value / denom
+
+    def _purchase_activation_rule(model, item_id: str):
+        big_m = _max_purchase_for_item(model, item_id)
+        return model.y[item_id] <= big_m * model.y_active[item_id]
+
+    m.PurchaseActivation = pyo.Constraint(m.I, rule=_purchase_activation_rule)
+
+    def _allocation_rule(model, item_id: str):
+        unallocated = model.Avail[item_id] - sum(model.x[item_id, h] for h in model.H)
+        return unallocated <= model.S[item_id] * (1 - model.y_active[item_id])
+
+    m.PurchaseAllocationEnforcement = pyo.Constraint(m.I, rule=_allocation_rule)
 
 
 @register_constraint("household_adequacy_floor")

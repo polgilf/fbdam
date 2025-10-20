@@ -93,7 +93,7 @@ def test_backbone_components_evaluate() -> None:
     assert hasattr(model, "epsilon")
     assert hasattr(model, "Avail")
     assert hasattr(model, "TotSupply")
-    assert hasattr(model, "mean_utility_nutrient")
+    assert hasattr(model, "nutrient_mean_utility")
 
     items = sorted(model.I)
     households = sorted(model.H)
@@ -106,12 +106,14 @@ def test_backbone_components_evaluate() -> None:
 
     for i in model.I:
         model.y[i].set_value(0.0)
+        model.y_active[i].set_value(0)
         for h in model.H:
             model.x[i, h].set_value(0.0)
             model.dpos[i, h].set_value(0.0)
             model.dneg[i, h].set_value(0.0)
 
     model.y[item].set_value(2.0)
+    model.y_active[item].set_value(1)
     model.x[item, household].set_value(3.0)
     model.dpos[item, household].set_value(0.5)
     model.dneg[item, household].set_value(0.25)
@@ -211,3 +213,35 @@ def test_purchases_disabled_without_budget_constraint() -> None:
 
     for item in model.I:
         assert pytest.approx(pyo.value(model.Avail[item])) == model.S[item]
+
+
+def test_purchase_budget_enforces_allocation_of_purchases() -> None:
+    cfg = _make_config()
+    model = build_model(cfg)
+
+    item = next(iter(model.I))
+    households = list(model.H)
+
+    # Baseline: zero everything
+    for i in model.I:
+        model.y[i].set_value(0.0)
+        model.y_active[i].set_value(0)
+        for h in model.H:
+            model.x[i, h].set_value(0.0)
+
+    # Attempt to purchase without activating should violate activation constraint
+    model.y[item].set_value(1.0)
+    model.y_active[item].set_value(0)
+    activation_violation = pyo.value(model.PurchaseActivation[item].body)
+    assert activation_violation > 0.0
+
+    # Activate purchases but fail to allocate — allocation constraint should be violated
+    model.y_active[item].set_value(1)
+    allocation_violation = pyo.value(model.PurchaseAllocationEnforcement[item].body)
+    assert allocation_violation > 0.0
+
+    # Allocate the full available quantity → constraint should now be tight (body ≈ 0)
+    total_available = pyo.value(model.S[item]) + model.y[item].value
+    model.x[item, households[0]].set_value(total_available)
+    allocation_satisfied = pyo.value(model.PurchaseAllocationEnforcement[item].body)
+    assert pytest.approx(allocation_satisfied, abs=1e-9) == 0.0

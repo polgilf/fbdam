@@ -9,8 +9,8 @@
     "supply": {
       "total_allocation": 60.0,
       "avg_allocation_per_pair": 20.0,
-      "undistributed": 0.6,
-      "total_cost": 9.92
+      "undistributed": 0.0,
+      "total_cost": 9.2
     },
     "utility": {
       "total_nutritional_utility": 3.212,
@@ -20,9 +20,9 @@
       "min_overall_utility": 0.3212
     },
     "fairness": {
-      "global_mean_deviation_from_fair_share": 0.36481,
-      "min_mean_deviation_from_fair_share_per_household": 0.16667,
-      "min_mean_deviation_from_fair_share_per_nutrient": -0.0,
+      "global_mean_deviation_from_fair_share": 0.48981,
+      "min_mean_deviation_from_fair_share_per_household": 0.25,
+      "min_mean_deviation_from_fair_share_per_nutrient": 0.3,
       "min_overall_deviation_from_fair_share": -0.0
     }
   }
