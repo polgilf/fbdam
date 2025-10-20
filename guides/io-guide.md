@@ -182,7 +182,7 @@ def test_io_loader_minimal(tmp_path):
         "nutrient_id,name,unit\nN1,Protein,g\n"
     )
     (data_dir / "households.csv").write_text(
-        "household_id,name,fairshare_weight\nH1,Demo household,1.0\n"
+        "household_id,name,members\nH1,Demo household,4\n"
     )
     (data_dir / "requirements.csv").write_text(
         "household_id,nutrient_id,requirement\nH1,N1,5\n"
@@ -218,6 +218,10 @@ solver:
     cfg = load_scenario(scenario_path)
     assert isinstance(cfg, ScenarioConfig)
     assert cfg.solver.name == "appsi_highs"
+
+`members` is treated as the raw household size. The loader normalizes it into a
+`fair_share` weight automatically, so legacy CSVs with pre-scaled weights no
+longer need to keep the `fairshare_weight` column.
     assert cfg.constraints[0].id == "nutrition_utility_mapping"
 ```
 

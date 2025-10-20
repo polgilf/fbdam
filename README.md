@@ -105,6 +105,20 @@ After installation, the `fbdam` console script is available on your PATH.
    All generated artifacts (reports, KPIs, manifest, etc.) are written underneath
 `--outputs`. See `outputs/example/` for a reference run.
 
+### Household fair-share inputs
+
+Household CSVs now expose raw household sizes via a `members` column instead of
+pre-normalized fair-share weights. The data loader converts these counts into
+normalized weights on load using:
+
+```
+fair_share[h] = members[h] / sum_k members[k]
+```
+
+Both the raw `members` count and the derived `fair_share` weight are made
+available to downstream components, so additional fairness scaling in configs or
+CSV files is no longer required.
+
 ## Handling infeasible solutions
 
 Sometimes the configured dials or budgets make the optimisation problem

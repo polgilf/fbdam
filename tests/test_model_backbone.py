@@ -24,8 +24,18 @@ def _make_domain() -> DomainIndex:
         "protein": Nutrient(nutrient_id="protein", name="Protein"),
     }
     households = {
-        "h1": Household(household_id="h1", name="H1", fairshare_weight=0.6),
-        "h2": Household(household_id="h2", name="H2", fairshare_weight=0.4),
+        "h1": Household(
+            household_id="h1",
+            name="H1",
+            members=3,
+            fairshare_weight=0.6,
+        ),
+        "h2": Household(
+            household_id="h2",
+            name="H2",
+            members=2,
+            fairshare_weight=0.4,
+        ),
     }
     item_nutrients = {
         ("rice", "protein"): ItemNutrient(item_id="rice", nutrient_id="protein", qty_per_unit=2.0),

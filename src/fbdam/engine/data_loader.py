@@ -245,18 +245,49 @@ def _load_households(path: Path | None) -> Dict[HouseholdId, Household]:
         raise DataLoaderError("Missing 'households' path in data_paths")
     
     households = {}
-    for row in _read_csv(
-        path,
-        required_columns=["household_id", "name"],
-        numeric_columns=["fairshare_weight"],
-    ):
+    rows = list(
+        _read_csv(
+            path,
+            required_columns=["household_id", "name"],
+            numeric_columns=["members", "fairshare_weight", "size"],
+        )
+    )
+
+    if not rows:
+        return {}
+
+    members_map: Dict[str, float] = {}
+    for row in rows:
         household_id = str(row["household_id"])
+        raw_members = row.get("members")
+        if raw_members in (None, ""):
+            raw_members = row.get("size")
+        if raw_members in (None, ""):
+            raw_members = row.get("fairshare_weight")
+        members_value = float(raw_members or 1.0)
+        if members_value < 0:
+            raise DataLoaderError(
+                f"{path.name}: household '{household_id}' has negative members={members_value}"
+            )
+        members_map[household_id] = members_value
+
+    total_members = sum(members_map.values())
+    if total_members <= 0:
+        raise DataLoaderError(
+            f"{path.name}: total household members must be > 0 (got {total_members})"
+        )
+
+    for row in rows:
+        household_id = str(row["household_id"])
+        members_value = members_map[household_id]
+        fair_share = members_value / total_members
         households[household_id] = Household(
             household_id=household_id,
             name=str(row["name"]),
-            fairshare_weight=float(row.get("fairshare_weight") or 1.0),
+            members=members_value,
+            fairshare_weight=fair_share,
         )
-    
+
     return households
 
 
