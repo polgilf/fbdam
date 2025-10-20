@@ -1,0 +1,29 @@
+{
+  "kpi": {
+    "basic": {
+      "items": 4.0,
+      "households": 3.0,
+      "nutrients": 3.0,
+      "objective_value": 6.39233
+    },
+    "supply": {
+      "total_allocation": 60.0,
+      "avg_allocation_per_pair": 20.0,
+      "undistributed": 1.0,
+      "total_cost": 10.0
+    },
+    "utility": {
+      "total_nutritional_utility": 6.43106,
+      "global_mean_utility": 0.71456,
+      "min_mean_utility_per_household": 0.63941,
+      "min_mean_utility_per_nutrient": 0.36488,
+      "min_overall_utility": 0.32725
+    },
+    "fairness": {
+      "global_mean_deviation_from_fair_share": 0.73148,
+      "min_mean_deviation_from_fair_share_per_household": 0.41667,
+      "min_mean_deviation_from_fair_share_per_nutrient": 0.2963,
+      "min_overall_deviation_from_fair_share": 0.0
+    }
+  }
+}
