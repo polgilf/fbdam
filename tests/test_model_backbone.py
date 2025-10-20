@@ -84,6 +84,24 @@ def _make_config() -> dict:
     }
 
 
+def test_x_integrality_defaults_to_integer() -> None:
+    cfg = _make_config()
+    model = build_model(cfg)
+
+    first_var = next(iter(model.x.values()))
+    assert first_var.domain is pyo.NonNegativeIntegers
+
+
+def test_x_integrality_can_be_continuous() -> None:
+    cfg = _make_config()
+    cfg["model_params"]["x_integrality"] = "continuous"
+
+    model = build_model(cfg)
+
+    first_var = next(iter(model.x.values()))
+    assert first_var.domain is pyo.NonNegativeReals
+
+
 def test_backbone_components_evaluate() -> None:
     cfg = _make_config()
     model = build_model(cfg)

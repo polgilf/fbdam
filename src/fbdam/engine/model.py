@@ -69,10 +69,16 @@ def build_model(cfg: dict) -> pyo.ConcreteModel:
     m = pyo.ConcreteModel(name="FBDAM")
 
     allow_purchases = _should_enable_purchases(constraint_specs, model_params)
+    x_domain = _resolve_x_domain(model_params)
 
     _build_sets(m, domain)
     _build_params(m, domain)
-    _build_variables(m, domain, allow_purchases=allow_purchases)
+    _build_variables(
+        m,
+        domain,
+        allow_purchases=allow_purchases,
+        x_domain=x_domain,
+    )
     _build_expressions(m)
 
     # Expose raw (non-Pyomo) parameters so plugins can read dials/budget/etc.
@@ -152,6 +158,35 @@ def _should_enable_purchases(constraint_specs: Sequence[dict], model_params: Map
     return False
 
 
+def _resolve_x_domain(model_params: Mapping[str, Any] | None):
+    """Return the Pyomo domain for allocation variable ``x``."""
+
+    params = model_params if isinstance(model_params, Mapping) else {}
+    raw = params.get("x_integrality")
+
+    if raw is None:
+        return pyo.NonNegativeIntegers
+
+    if raw in (pyo.NonNegativeIntegers, pyo.NonNegativeReals):
+        return raw
+
+    if isinstance(raw, bool):
+        return pyo.NonNegativeIntegers if raw else pyo.NonNegativeReals
+
+    if isinstance(raw, str):
+        text = raw.strip().lower()
+        if text in {"int", "integer", "integers", "discrete", "nonnegative_integers"}:
+            return pyo.NonNegativeIntegers
+        if text in {"real", "reals", "continuous", "nonnegative_reals", "float", "floats"}:
+            return pyo.NonNegativeReals
+
+    raise ValueError(
+        "model_params['x_integrality'] must be one of 'integer' or 'continuous' (case-insensitive), "
+        "a corresponding boolean, or a Pyomo domain object. "
+        f"Got {raw!r}."
+    )
+
+
 def _build_sets(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
     """Create fundamental index sets."""
     m.I = pyo.Set(initialize=list(domain.items.keys()), ordered=False, doc="Items")
@@ -222,7 +257,11 @@ def _build_params(m: pyo.ConcreteModel, domain: DomainIndex) -> None:
 
 
 def _build_variables(
-    m: pyo.ConcreteModel, domain: DomainIndex, *, allow_purchases: bool
+    m: pyo.ConcreteModel,
+    domain: DomainIndex,
+    *,
+    allow_purchases: bool,
+    x_domain,
 ) -> None:
     """Create decision variables and common auxiliaries."""
 
@@ -237,8 +276,13 @@ def _build_variables(
         ub = None if b.upper is None else float(b.upper)
         return (lb, ub)
 
-    #m.x = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, bounds=_x_bounds, doc="Allocation of item i to household h")
-    m.x = pyo.Var(m.I, m.H, domain=pyo.NonNegativeIntegers, bounds=_x_bounds, doc="Allocation of item i to household h")
+    m.x = pyo.Var(
+        m.I,
+        m.H,
+        domain=x_domain,
+        bounds=_x_bounds,
+        doc="Allocation of item i to household h",
+    )
 
     # Utility u[n,h] in [0,1]
     m.u = pyo.Var(m.N, m.H, bounds=(0.0, 1.0), doc="Nutrient-household utility (normalized)")
