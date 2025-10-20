@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from fbdam.utils import make_run_id, parse_run_id, slugify_run_name
+from fbdam.utils import build_run_dir, make_run_id, parse_run_id, slugify_run_name
 
 
 def test_make_run_id_from_datetime() -> None:
@@ -37,3 +37,10 @@ def test_parse_run_id_rejects_invalid_values() -> None:
 def test_slugify_run_name_preserves_safe_characters() -> None:
     assert slugify_run_name("Hello World!") == "hello-world"
     assert slugify_run_name("\u2603") == "run"
+
+
+def test_build_run_dir_normalises_segments(tmp_path) -> None:
+    run_dir = build_run_dir(tmp_path, "Dataset A", "Config B", "run_20250101T000000Z")
+    assert run_dir.exists()
+    assert run_dir.parent.name == "config-b"
+    assert run_dir.parent.parent.name == "dataset-a"

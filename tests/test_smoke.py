@@ -24,7 +24,7 @@ from fbdam.engine.domain import (
 from fbdam.engine.model import build_model
 from fbdam.engine.solver import solve_model
 from fbdam.engine.reporting import write_report
-from fbdam.utils import make_run_id
+from fbdam.utils import build_run_dir, make_run_id
 
 
 def build_minimal_domain() -> DomainIndex:
@@ -111,7 +111,7 @@ def test_full_pipeline(tmp_path: Path = None):
     # ---- Report ----
     outputs_root = tmp_path / "outputs" / "runs"
     run_id = make_run_id("fbdam_smoke_run", datetime.now(timezone.utc))
-    run_dir = outputs_root / run_id
+    run_dir = build_run_dir(outputs_root, "smoke-dataset", "smoke-config", run_id)
     manifest = write_report(
         model=m,
         solver_results=results,
@@ -124,7 +124,8 @@ def test_full_pipeline(tmp_path: Path = None):
 
     # ---- Assertions ----
     assert run_dir.exists()
-    assert run_dir.parent.name == "runs"
+    assert run_dir.parent.name == "smoke-config"
+    assert run_dir.parent.parent.name == "smoke-dataset"
     assert run_dir.name.startswith("fbdam_smoke_run_")
     artifacts = {a["path"] for a in manifest.get("artifacts", [])}
     expected = {

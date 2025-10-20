@@ -1,0 +1,19 @@
+run_id: ds-b_alpha-0-4_20251020T151356Z
+scenario: /workspace/fbdam/scenarios/ds-b_alpha-0.4.yaml
+dataset:
+  id: ds-b
+  path: /workspace/fbdam/data/ds-b
+config:
+  id: alpha-0.4
+  path: /workspace/fbdam/configs/alpha-0.4.yaml
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 5
+    mip_rel_gap: 0.05
+    log_to_console: false
+    log_file: /workspace/fbdam/runs/ds-b/alpha-0-4/ds-b_alpha-0-4_20251020T151356Z/solver.log
+profile:
+  id: time-limited
+  path: /workspace/fbdam/profiles/time-limited.yaml
+  description: Short time limit for quick feedback runs.

@@ -1,0 +1,6 @@
+id: time-limited
+description: Short time limit for quick feedback runs.
+solver:
+  options:
+    time_limit: 5
+    mip_rel_gap: 0.05

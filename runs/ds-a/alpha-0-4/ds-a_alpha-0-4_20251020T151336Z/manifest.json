@@ -1,0 +1,63 @@
+{
+  "run": {
+    "id": "ds-a_alpha-0-4_20251020T151336Z",
+    "started_at": "2025-10-20T15:13:36Z"
+  },
+  "solver": {
+    "name": "mock",
+    "status": "mock",
+    "termination": "not attempted",
+    "elapsed_sec": 0.0029,
+    "objective_value": 0.0,
+    "best_feasible_objective": 0.0,
+    "best_objective_bound": 0.0,
+    "is_feasible": true
+  },
+  "artifacts": [
+    {
+      "path": "solver_report.json",
+      "sha256": "64fec0c6fa67bed40ac06b38a29d59a3386fd4e03284d966ae3052dd370fc377",
+      "kind": "metric"
+    },
+    {
+      "path": "model_stats.json",
+      "sha256": "98f9138519921a38d6f3d3b7d27ce5483606e588b1a27dfd206abd65a04d56d1",
+      "kind": "metric"
+    },
+    {
+      "path": "kpis.json",
+      "sha256": "dbaa3887559d745413909579a848f6c225fd00fa830861c0601da5f2385278fa",
+      "kind": "metric"
+    },
+    {
+      "path": "variables.csv",
+      "sha256": "8e55684ea651b3cdfc36052392531bf3eff7d723388650f45ee74231c4f65e4c",
+      "kind": "table"
+    },
+    {
+      "path": "solution.csv",
+      "sha256": "c570a15862de72172510e8da1de84267ed489d6b2f020eef8798b59a5d49d7d5",
+      "kind": "table"
+    },
+    {
+      "path": "report.md",
+      "sha256": "e291881b664e4c746f0d8b88f33e7838f8a9b2b94667d4b68187dfb66eb6de7c",
+      "kind": "report"
+    },
+    {
+      "path": "config_snapshot.json",
+      "sha256": "dd8240a7963a4f6670d8bb7418feae9e88ed3138c294ca4018c25f1995e5ec65",
+      "kind": "config"
+    },
+    {
+      "path": "model.mps",
+      "sha256": "3ffb668e0bb47e479d19b8c62c009785786f5e94129b51916fc5481f407598c6",
+      "kind": "model"
+    },
+    {
+      "path": "solver.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "log"
+    }
+  ]
+}

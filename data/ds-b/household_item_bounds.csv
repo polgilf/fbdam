@@ -1,0 +1,7 @@
+item_id,household_id,lower,upper
+maize,A1,0,18
+peas,A1,0,15
+oil,A1,0,8
+maize,A2,0,18
+peas,A2,0,15
+oil,A2,0,8

@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import yaml
 
@@ -68,12 +68,17 @@ class ScenarioConfig:
     Builder-ready scenario configuration.
     Note: dataset paths are normalized (absolute) and verified to exist.
     """
+
     data_paths: Dict[str, Path]
     domain: DomainIndex
     model_params: Dict[str, Any]
     constraints: List[MaterializedConstraint]
     objectives: List[MaterializedObjective]
     solver: SolverConfig
+    dataset_id: str
+    config_id: str
+    dataset_root: Path
+    config_path: Path
     raw: Dict[str, Any]  # original (lightly normalized) content for traceability
 
 
@@ -97,33 +102,48 @@ def load_scenario(scenario_path: Path) -> ScenarioConfig:
     if not isinstance(scenario, dict):
         raise IOConfigError("Scenario YAML must be a mapping at the top-level.")
 
+    dataset_id, dataset_root = _resolve_dataset_section(
+        scenario.get("dataset"),
+        scenario_path,
+    )
+    config_id, config_path = _resolve_config_section(
+        scenario.get("config"),
+        scenario_path,
+    )
+
+    config_data = _read_yaml_file(config_path)
+    model_section = _compose_model_section(
+        config_data.get("model", {}),
+        scenario.get("model", {}),
+        context=f"{config_path.name}::model",
+    )
+
     # Load catalogs packaged with the library
     constraints_catalog = _load_packaged_yaml("fbdam.config", "catalogs/constraints_v1.1.yaml")
     objectives_catalog = _load_packaged_yaml("fbdam.config", "catalogs/objectives_v1.0.yaml")
 
     # Materialize constraints/objectives
     mat_constraints = _materialize_constraints(
-        scenario.get("model", {}).get("constraints", []),
+        model_section.get("constraints", []),
         constraints_catalog,
-        context=f"{scenario_path.name}::model.constraints",
+        context=f"{config_path.name}::model.constraints",
     )
     mat_objectives = _materialize_objectives(
-        scenario.get("model", {}).get("objectives", []),
+        model_section.get("objectives", []),
         objectives_catalog,
-        context=f"{scenario_path.name}::model.objectives",
+        context=f"{config_path.name}::model.objectives",
     )
 
-    # Normalize data file paths
-    data_root = scenario_path.parent  # relative paths are resolved with respect to the scenario file
-    data_paths = _normalize_data_paths(
-        scenario.get("data", {}),
-        base_dir=data_root,
-        context=f"{scenario_path.name}::data",
-    )
+    # Normalize data file paths based on dataset root
+    data_paths = _resolve_dataset_paths(dataset_root, dataset_id)
 
-    # Solver
-    solver_cfg = _normalize_solver(
+    # Solver configuration (config defaults overridden by scenario-level block)
+    solver_section = _merge_solver_sections(
+        config_data.get("solver", {}),
         scenario.get("solver", {}),
+    )
+    solver_cfg = _normalize_solver(
+        solver_section,
         context=f"{scenario_path.name}::solver",
     )
 
@@ -131,7 +151,7 @@ def load_scenario(scenario_path: Path) -> ScenarioConfig:
     try:
         bundle = load_domain_and_params(
             data_paths=data_paths,
-            model_section=scenario.get("model", {}),
+            model_section=model_section,
         )
     except DataLoaderError as exc:
         raise IOConfigError(str(exc)) from exc
@@ -140,6 +160,8 @@ def load_scenario(scenario_path: Path) -> ScenarioConfig:
     normalized_raw = {
         "version": scenario.get("version"),
         "status": scenario.get("status"),
+        "dataset": {"id": dataset_id, "path": str(dataset_root)},
+        "config": {"id": config_id, "path": str(config_path)},
         "data": {k: str(v) for k, v in data_paths.items()},
         "model": {
             "constraints": [c.__dict__ for c in mat_constraints],
@@ -156,6 +178,10 @@ def load_scenario(scenario_path: Path) -> ScenarioConfig:
         constraints=mat_constraints,
         objectives=mat_objectives,
         solver=solver_cfg,
+        dataset_id=dataset_id,
+        config_id=config_id,
+        dataset_root=dataset_root,
+        config_path=config_path,
         raw=normalized_raw,
     )
 
@@ -289,33 +315,118 @@ def _index_catalog(catalog: Dict[str, Any], root_key: str, id_key: str) -> Dict[
 # -------------------------- Paths & solver config -----------------------------
 
 
-def _normalize_data_paths(
-    data_section: Dict[str, Any],
-    base_dir: Path,
-    context: str,
-) -> Dict[str, Path]:
-    """
-    Normalize and validate dataset paths.
-    - Converts strings to absolute Paths relative to `base_dir`.
-    - Ensures files exist when provided.
-    """
-    if not isinstance(data_section, dict):
-        raise IOConfigError(f"{context}: 'data' must be a mapping.")
+def _resolve_dataset_section(node: Any, scenario_path: Path) -> Tuple[str, Path]:
+    context = f"{scenario_path.name}::dataset"
+    if not isinstance(node, Mapping):
+        raise IOConfigError(f"{context}: 'dataset' must be a mapping with an 'id'.")
 
-    normalized: Dict[str, Path] = {}
-    for key, value in data_section.items():
-        if value in (None, ""):
-            # Allow empty slots (optional datasets), skip validation
-            continue
-        if not isinstance(value, (str, Path)):
-            raise IOConfigError(f"{context}.{key}: expected a path-like string.")
-        p = Path(value).expanduser()
-        if not p.is_absolute():
-            p = (base_dir / p).resolve()
-        if not p.is_file():
-            raise IOConfigError(f"{context}.{key}: file not found -> {p}")
-        normalized[key] = p
-    return normalized
+    dataset_id = _require_str(node, "id", context)
+    raw_path = node.get("path")
+    if raw_path is None:
+        raw_path = Path("..") / "data" / dataset_id
+
+    dataset_path = Path(raw_path).expanduser()
+    if not dataset_path.is_absolute():
+        dataset_path = (scenario_path.parent / dataset_path).resolve()
+
+    if not dataset_path.is_dir():
+        raise IOConfigError(f"{context}: dataset directory not found -> {dataset_path}")
+
+    return dataset_id, dataset_path
+
+
+def _resolve_config_section(node: Any, scenario_path: Path) -> Tuple[str, Path]:
+    context = f"{scenario_path.name}::config"
+    if not isinstance(node, Mapping):
+        raise IOConfigError(f"{context}: 'config' must be a mapping with an 'id'.")
+
+    config_id = _require_str(node, "id", context)
+    raw_path = node.get("path")
+    if raw_path is None:
+        raw_path = Path("..") / "configs" / f"{config_id}.yaml"
+
+    config_path = Path(raw_path).expanduser()
+    if not config_path.is_absolute():
+        config_path = (scenario_path.parent / config_path).resolve()
+
+    if config_path.is_dir():
+        config_path = config_path / f"{config_id}.yaml"
+
+    if not config_path.is_file():
+        raise IOConfigError(f"{context}: config file not found -> {config_path}")
+
+    return config_id, config_path
+
+
+def _compose_model_section(
+    config_model: Any,
+    scenario_override: Any,
+    *,
+    context: str,
+) -> Dict[str, Any]:
+    if config_model is None:
+        raise IOConfigError(f"{context}: configuration is missing a 'model' section.")
+    if not isinstance(config_model, Mapping):
+        raise IOConfigError(f"{context}: configuration 'model' must be a mapping.")
+    if scenario_override not in (None, {}) and not isinstance(scenario_override, Mapping):
+        raise IOConfigError(f"{context}: scenario 'model' overrides must be a mapping if provided.")
+
+    base = dict(config_model)
+    if not scenario_override:
+        return base
+
+    override = dict(scenario_override)
+    return _deep_merge(base, override)
+
+
+def _resolve_dataset_paths(dataset_root: Path, dataset_id: str) -> Dict[str, Path]:
+    required_specs = [
+        ("items.csv", True, ("items", "items_csv")),
+        ("nutrients.csv", True, ("nutrients", "nutrients_csv")),
+        ("households.csv", True, ("households", "households_csv")),
+        ("requirements.csv", True, ("requirements", "requirements_csv")),
+        ("item_nutrients.csv", True, ("item_nutrients", "item_nutrients_csv")),
+    ]
+    optional_specs = [
+        ("household_item_bounds.csv", False, ("bounds", "household_item_bounds", "household_item_bounds_csv")),
+        ("params.yaml", False, ("params", "params_yaml")),
+    ]
+
+    resolved: Dict[str, Path] = {}
+    dataset_root = dataset_root.resolve()
+
+    for filename, required, aliases in required_specs + optional_specs:
+        path = (dataset_root / filename).resolve()
+        if path.is_file():
+            for alias in aliases:
+                resolved[alias] = path
+        elif required:
+            raise IOConfigError(
+                f"dataset '{dataset_id}' is missing required file '{filename}' at {path.parent}"
+            )
+
+    return resolved
+
+
+def _merge_solver_sections(
+    base_section: Any,
+    override_section: Any,
+) -> Dict[str, Any]:
+    base = base_section if isinstance(base_section, Mapping) else {}
+    override = override_section if isinstance(override_section, Mapping) else {}
+
+    merged: Dict[str, Any] = {}
+    merged.update(base)
+    merged.update({k: v for k, v in override.items() if k != "options"})
+
+    options: Dict[str, Any] = {}
+    if isinstance(base, Mapping):
+        options.update(base.get("options", {}) or {})
+    if isinstance(override, Mapping):
+        options.update(override.get("options", {}) or {})
+
+    merged["options"] = options
+    return merged
 
 
 def _normalize_solver(

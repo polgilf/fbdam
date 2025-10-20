@@ -1,0 +1,59 @@
+{
+  "run": {
+    "id": "ds-a_alpha-0-4_20251020T151336Z",
+    "started_at": "2025-10-20T15:13:36Z"
+  },
+  "solver": {
+    "name": "mock",
+    "status": "mock",
+    "termination": "not attempted",
+    "elapsed_sec": 0.0029,
+    "objective_value": 0.0,
+    "best_feasible_objective": 0.0,
+    "best_objective_bound": 0.0,
+    "is_feasible": true
+  },
+  "raw": {
+    "solver": "mock",
+    "elapsed_sec": 0.0029,
+    "termination": "not attempted",
+    "status": "mock",
+    "is_feasible": true,
+    "error_message": null,
+    "objective_value": 0.0,
+    "variables": {
+      "x[('lentils', 'H1')]": 0.0,
+      "x[('lentils', 'H2')]": 0.0,
+      "x[('beans', 'H1')]": 0.0,
+      "x[('beans', 'H2')]": 0.0,
+      "x[('rice', 'H1')]": 0.0,
+      "x[('rice', 'H2')]": 0.0,
+      "u[('prot', 'H1')]": 0.0,
+      "u[('prot', 'H2')]": 0.0,
+      "u[('cal', 'H1')]": 0.0,
+      "u[('cal', 'H2')]": 0.0,
+      "y[lentils]": 0.0,
+      "y[beans]": 0.0,
+      "y[rice]": 0.0,
+      "y_active[lentils]": 0.0,
+      "y_active[beans]": 0.0,
+      "y_active[rice]": 0.0,
+      "dpos[('lentils', 'H1')]": 0.0,
+      "dpos[('lentils', 'H2')]": 0.0,
+      "dpos[('beans', 'H1')]": 0.0,
+      "dpos[('beans', 'H2')]": 0.0,
+      "dpos[('rice', 'H1')]": 0.0,
+      "dpos[('rice', 'H2')]": 0.0,
+      "dneg[('lentils', 'H1')]": 0.0,
+      "dneg[('lentils', 'H2')]": 0.0,
+      "dneg[('beans', 'H1')]": 0.0,
+      "dneg[('beans', 'H2')]": 0.0,
+      "dneg[('rice', 'H1')]": 0.0,
+      "dneg[('rice', 'H2')]": 0.0,
+      "epsilon[None]": 0.0
+    },
+    "gap": null,
+    "best_feasible_objective": 0.0,
+    "best_objective_bound": 0.0
+  }
+}

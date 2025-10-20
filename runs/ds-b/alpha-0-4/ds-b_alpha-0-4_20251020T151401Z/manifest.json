@@ -1,0 +1,63 @@
+{
+  "run": {
+    "id": "ds-b_alpha-0-4_20251020T151401Z",
+    "started_at": "2025-10-20T15:14:01Z"
+  },
+  "solver": {
+    "name": "mock",
+    "status": "mock",
+    "termination": "not attempted",
+    "elapsed_sec": 0.0027,
+    "objective_value": 0.0,
+    "best_feasible_objective": 0.0,
+    "best_objective_bound": 0.0,
+    "is_feasible": true
+  },
+  "artifacts": [
+    {
+      "path": "solver_report.json",
+      "sha256": "d392290081ed8c1d0f1bbe5ac61e4aed9becf5dd1200437e18274898ff022d15",
+      "kind": "metric"
+    },
+    {
+      "path": "model_stats.json",
+      "sha256": "98f9138519921a38d6f3d3b7d27ce5483606e588b1a27dfd206abd65a04d56d1",
+      "kind": "metric"
+    },
+    {
+      "path": "kpis.json",
+      "sha256": "0d4b9d2e35e05380932f744a75f64cb4328af4d7bd27aa7cf09d5d75a50cf3e7",
+      "kind": "metric"
+    },
+    {
+      "path": "variables.csv",
+      "sha256": "b607e705234b017c1db0d12cf7739b503b5d92be7d4fb5b9b644071b3f51d5b8",
+      "kind": "table"
+    },
+    {
+      "path": "solution.csv",
+      "sha256": "c570a15862de72172510e8da1de84267ed489d6b2f020eef8798b59a5d49d7d5",
+      "kind": "table"
+    },
+    {
+      "path": "report.md",
+      "sha256": "e5ab396fda851bb2ff31e8dc12fbf69f4cee942ddbee8ec02223338663a2345d",
+      "kind": "report"
+    },
+    {
+      "path": "config_snapshot.json",
+      "sha256": "4e47dc14cfc1f8130327ea361011e7175483356f616d6cd2b5fc663d4a0e78ea",
+      "kind": "config"
+    },
+    {
+      "path": "model.mps",
+      "sha256": "9560042fea0fca943e42481736e5ef740dd5710d14afc57556063d0bb7bf4c0a",
+      "kind": "model"
+    },
+    {
+      "path": "solver.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "log"
+    }
+  ]
+}

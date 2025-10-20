@@ -1,0 +1,7 @@
+item_id,nutrient_id,qty_per_unit
+rice,cal,200
+rice,prot,4
+beans,cal,150
+beans,prot,10
+lentils,cal,180
+lentils,prot,12

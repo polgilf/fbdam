@@ -1,0 +1,7 @@
+item_id,household_id,lower,upper
+rice,H1,0,20
+beans,H1,0,15
+lentils,H1,0,10
+rice,H2,0,20
+beans,H2,0,15
+lentils,H2,0,10

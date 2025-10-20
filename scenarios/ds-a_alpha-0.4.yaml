@@ -1,0 +1,16 @@
+version: v2
+name: Dataset A × Alpha 0.4
+status: example
+dataset:
+  id: ds-a
+  path: ../data/ds-a
+config:
+  id: alpha-0.4
+  path: ../configs/alpha-0.4.yaml
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 60
+    mip_rel_gap: 0.001
+    log_to_console: false
+    log_file: solver.log
