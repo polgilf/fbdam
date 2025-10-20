@@ -30,6 +30,11 @@ def clear_path(path: Path) -> None:
         The path to delete. If *path* points to a directory, the directory is
         preserved but all of its contents are removed. If *path* points to a
         file or a symbolic link it is removed directly.
+
+    How to use this function:
+    >>> from pathlib import Path
+    >>> from utilities.clear_path import clear_path
+    >>> clear_path(Path("output/demo"))
     """
 
     if not path.exists():

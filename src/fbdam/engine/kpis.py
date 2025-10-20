@@ -1,19 +1,6 @@
 from __future__ import annotations
-
-import csv
-import datetime as dt
-import hashlib
-import json
-import os
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
-
+from typing import Any, Dict, Iterable, Mapping, Sequence
 import pyomo.environ as pyo
-
-try:
-    from pyomo.opt import ProblemFormat  # type: ignore
-except ImportError:  # pragma: no cover - fallback for older Pyomo releases
-    ProblemFormat = None  # type: ignore
 
 from fbdam.engine.domain import DomainIndex
 
