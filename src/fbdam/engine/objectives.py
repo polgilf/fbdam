@@ -113,7 +113,7 @@ def obj_sum_utility(m: pyo.ConcreteModel, params: dict, sense: Optional[str] = "
     expr = weight * utility_expr
 
     lambda_value = _get_lambda_value(getattr(m, "model_params", None))
-    if lambda_value and hasattr(m, "epsilon"):
+    if lambda_value is not None and hasattr(m, "epsilon"):
         expr = expr - lambda_value * m.epsilon
 
     # Use a stable component name (overwrite if re-called by design).
