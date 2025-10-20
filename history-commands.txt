@@ -26,6 +26,9 @@ python analysis/plot_from_solution_dir.py "runs/ds-a/dials-balanced" "analysis/p
 python analysis/plot_from_solution_dir.py "runs/ds-a/dials-efficiency" "analysis/plots/demo_allocated_food_ds-a_efficiency.png"
 python analysis/plot_from_solution_dir.py "runs/ds-a/dials-fairness" "analysis/plots/demo_allocated_food_ds-a_fairness.png"
 
+python analysis/plot_kpis.py "analysis/tables/kpis.csv"
+python analysis/plot_kpis.py
+
 # Run
 # In bash 
 bash run_experiment.sh

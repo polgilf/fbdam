@@ -4,17 +4,17 @@ kpi,,,,
 Items,4.0,4.0,4.0,4.0
 Households,3.0,3.0,3.0,3.0
 Nutrients,3.0,3.0,3.0,3.0
-Objective value,6.6004,6.507,3.635,6.33817
-Total allocation,59.0,61.0,60.0,59.0
-Avg allocation per pair,19.66667,20.33333,20.0,19.66667
-Undistributed,1.0,0.0,1.0,1.0
+Objective value,6.63665,6.5232,3.635,6.44069
+Total allocation,60.0,61.0,60.0,60.0
+Avg allocation per pair,20.0,20.33333,20.0,20.0
+Undistributed,0.0,0.0,1.0,0.0
 Total cost,10.0,9.9,9.9,9.1
-Total nutritional utility,6.6004,6.507,3.635,6.37933
-Global mean utility,0.73338,0.723,0.40389,0.70881
-Min mean utility per household,0.58223,0.65925,0.3635,0.62217
-Min mean utility per nutrient,0.32323,0.3761,0.3635,0.35488
-Min overall utility,0.0855,0.3615,0.3635,0.29725
-Global mean deviation from fair share,2.13889,1.16667,0.32407,0.80556
-Max mean deviation from fair share per household,3.33333,1.5,0.38889,1.33333
+Total nutritional utility,6.63665,6.5232,3.635,6.48272
+Global mean utility,0.73741,0.7248,0.40389,0.7203
+Min mean utility per household,0.58485,0.67018,0.3635,0.65663
+Min mean utility per nutrient,0.32493,0.37252,0.3635,0.3558
+Min overall utility,0.087,0.3624,0.3635,0.3
+Global mean deviation from fair share,2.05556,1.07407,0.32407,0.72222
+Max mean deviation from fair share per household,3.08333,1.25,0.38889,1.08333
 Max mean deviation from fair share per nutrient,3.85185,2.07407,0.44444,1.11111
 Max overall deviation from fair share,5.77778,3.11111,0.66667,1.66667
