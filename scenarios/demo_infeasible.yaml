@@ -1,0 +1,56 @@
+version: v1.0
+name: Demo — infeasible stress test
+status: demo
+
+data:
+  items_csv: ../data/demo/items.csv
+  nutrients_csv: ../data/demo/nutrients.csv
+  households_csv: ../data/demo/households.csv
+  requirements_csv: ../data/demo/requirements.csv
+  item_nutrients_csv: ../data/demo/item_nutrients.csv
+  household_item_bounds_csv: ../data/demo/household_item_bounds.csv
+  params_yaml: ../data/demo/params.yaml
+
+model:
+  description: |
+    Scenario crafted to be infeasible by combining perfect fairness dials with
+    strict adequacy floors and a near-zero purchase budget. Used for exercising
+    diagnostic reporting when the solver cannot find a feasible solution.
+  constraints:
+    - ref: nutrition_utility_mapping
+    - ref: item_supply_limit
+    - ref: purchase_budget_limit
+      override:
+        budget: 1  # intentionally insufficient budget
+    - ref: fairshare_deviation_identity
+    - ref: item_equity_aggregate_cap
+      override:
+        alpha: 0.0
+    - ref: household_equity_aggregate_cap
+      override:
+        beta: 0.0
+    - ref: pairwise_equity_cap
+      override:
+        rho: 0.0
+    - ref: household_adequacy_floor
+      override:
+        omega: 1.0
+        use_slack: False
+    - ref: nutrient_adequacy_floor
+      override:
+        gamma: 1.0
+        use_slack: False
+    - ref: pairwise_adequacy_floor
+      override:
+        kappa: 1.0
+        use_slack: False
+
+  objectives:
+    - ref: sum_utility
+
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 10
+    log_to_console: True
+    log_file: solver.log

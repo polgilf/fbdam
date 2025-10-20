@@ -1,4 +1,10 @@
-"""Deterministic reporting utilities for FBDAM runs."""
+"""Deterministic reporting utilities for FBDAM runs.
+
+The helpers in this module collate solver metadata, KPI calculations and
+artifact manifests.  They are resilient to infeasible solves by propagating
+the ``is_feasible`` flag and surfacing user-facing diagnostics in generated
+reports.
+"""
 
 from __future__ import annotations
 
@@ -319,6 +325,10 @@ def _normalise_solver_report(
     run_id: str,
     run_started_at: str,
 ) -> Dict[str, Any]:
+    best_bound = solver_results.get("best_objective_bound")
+    if best_bound is None:
+        best_bound = solver_results.get("best_bound")
+
     solver_section = {
         "name": solver_results.get("solver"),
         "status": solver_results.get("status"),
@@ -326,7 +336,10 @@ def _normalise_solver_report(
         "elapsed_sec": solver_results.get("elapsed_sec"),
         "objective_value": solver_results.get("objective_value"),
         "gap": solver_results.get("gap"),
-        "best_bound": solver_results.get("best_bound"),
+        "best_feasible_objective": solver_results.get("best_feasible_objective"),
+        "best_objective_bound": best_bound,
+        "is_feasible": solver_results.get("is_feasible"),
+        "error_message": solver_results.get("error_message"),
     }
 
     return {
@@ -547,27 +560,65 @@ def write_markdown_summary(
 
     run_id = solver_report.get("run", {}).get("id")
     if run_id:
-        lines.append(f"\n**Run ID:** `{run_id}`\n")
+        lines.append("")
+        lines.append(f"**Run ID:** `{run_id}`")
+        lines.append("")
 
     solver_section = solver_report.get("solver", {})
+    is_feasible = solver_section.get("is_feasible", True)
+
+    if not is_feasible:
+        lines.append("⚠️ **WARNING: MODEL IS INFEASIBLE** ⚠️")
+        lines.append("")
+        lines.append("The solver could not find a feasible solution. Review the constraints and dials.")
+        lines.append("")
+
     lines.append("## Solver summary")
-    for key in ["name", "status", "termination", "elapsed_sec", "objective_value", "gap", "best_bound"]:
+    summary_keys = [
+        "name",
+        "status",
+        "termination",
+        "elapsed_sec",
+        "objective_value",
+        "best_feasible_objective",
+        "best_objective_bound",
+        "gap",
+    ]
+    for key in summary_keys:
         if key in solver_section:
             pretty = key.replace("_", " ")
             lines.append(f"- {pretty.title()}: {solver_section[key]}")
 
-    if kpis:
-        payload = kpis.get("kpi", kpis)
-        if payload:
-            lines.append("\n## KPIs")
-            lines.append("| Metric | Value |")
-            lines.append("|---|---|")
-            for key, value in payload.items():
-                lines.append(f"| {key} | {value} |")
+    error_message = solver_section.get("error_message")
+    if error_message:
+        lines.append(f"**Error:** {error_message}")
+
+    lines.append("")
+    lines.append("## KPIs")
+    payload = kpis.get("kpi", kpis)
+    if is_feasible and payload:
+        lines.append("| Metric | Value |")
+        lines.append("|---|---|")
+
+        def _emit_rows(prefix: str, obj: Mapping[str, Any]) -> None:
+            for sub_key, value in obj.items():
+                full_key = f"{prefix}.{sub_key}" if prefix else sub_key
+                if isinstance(value, Mapping):
+                    _emit_rows(full_key, value)
+                else:
+                    lines.append(f"| {full_key} | {value} |")
+
+        if isinstance(payload, Mapping):
+            _emit_rows("", payload)
+        else:
+            lines.append(f"| value | {payload} |")
+    else:
+        lines.append("*KPIs not available for infeasible solutions.*")
 
     if model_stats:
         ms = model_stats.get("model", model_stats)
-        lines.append("\n## Model stats")
+        lines.append("")
+        lines.append("## Model stats")
         for key in ["vars_total", "cons_total"]:
             if key in ms:
                 pretty = key.replace("_", " ")
@@ -580,6 +631,15 @@ def write_markdown_summary(
             lines.append("\n**Constraints by block**")
             for k, v in ms["cons_by_block"].items():
                 lines.append(f"- {k}: {v}")
+
+    if not is_feasible:
+        lines.append("")
+        lines.append("## Troubleshooting suggestions")
+        lines.append("- Check the solver log for detailed infeasibility analysis")
+        lines.append("- Review constraint dial values (alpha, beta, gamma, kappa, rho, omega)")
+        lines.append("- Verify that requirements are achievable with available stock + budget")
+        lines.append("- Consider relaxing adequacy floors or equity caps")
+        lines.append("- Enable epsilon slack with a small lambda penalty")
 
     text = "\n".join(lines) + "\n"
     return write_text(path, text)

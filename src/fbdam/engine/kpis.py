@@ -1,10 +1,12 @@
+"""KPI computation helpers resilient to infeasible solver outcomes."""
+
 from __future__ import annotations
-from typing import Any, Dict, Iterable, Mapping, Sequence
+
+from typing import Any, Dict, Iterable, Mapping, Optional
+
 import pyomo.environ as pyo
 
 from fbdam.engine.domain import DomainIndex
-
-ArtifactRows = Iterable[Sequence[Any]]
 
 
 def compute_kpis(
@@ -12,178 +14,94 @@ def compute_kpis(
     domain: DomainIndex | None,
     solver_report: Mapping[str, Any],
 ) -> Dict[str, Any]:
-    metrics: Dict[str, Any] = {}
+    """Compute KPI aggregates from a solved model.
 
-    # Basic counts
-    metrics["basic"]=  {}
-    if domain is not None:
-        metrics["basic"]["items"] = len(domain.items)
-        metrics["basic"]["households"] = len(domain.households)
-        metrics["basic"]["nutrients"] = len(domain.nutrients)
+    For infeasible solves a minimal structure is returned so that reporting
+    remains functional without evaluating undefined Pyomo expressions.
+    """
 
-    # Objective value
     solver_section = solver_report.get("solver")
-    if isinstance(solver_section, Mapping) and "objective_value" in solver_section:
-        metrics["basic"]["objective_value"] = solver_section["objective_value"]
+    is_feasible = True
+    if isinstance(solver_section, Mapping):
+        is_feasible = solver_section.get("is_feasible", True)
 
-    # ------------------------------------------------------------
-    # Allocation stats (TotalAllocated, MeanAllocated, Undistributed, TotalCost)
-    # ------------------------------------------------------------
-    metrics["supply"] = {}
-    metrics["supply"]["total_allocation"] = pyo.value(model.TotAllocated, exception=False)
-    metrics["supply"]["avg_allocation_per_pair"] = pyo.value(model.MeanAllocated, exception=False)
-    metrics["supply"]["undistributed"] = pyo.value(model.Undistributed, exception=False)
-    metrics["supply"]["total_cost"] = pyo.value(model.TotalCost, exception=False)
+    metrics: Dict[str, Dict[str, Any]] = {"basic": {}}
+    basic = metrics["basic"]
 
-    # ------------------------------------------------------------
-    # Utility stats (total_utility, global_mean_utility, min(household_mean_utility), min(nutrient_mean_utility), min_overall_utility)
-    # ------------------------------------------------------------
-    metrics["utility"] = {}
-    metrics["utility"]["total_nutritional_utility"] = pyo.value(model.total_nutritional_utility, exception=False)
-    metrics["utility"]["global_mean_utility"] = pyo.value(model.global_mean_utility, exception=False)
-    metrics["utility"]["min_mean_utility_per_household"] = min(
-        pyo.value(model.household_mean_utility[h], exception=False) for h in model.H)
-    metrics["utility"]["min_mean_utility_per_nutrient"] = min(
-        pyo.value(model.nutrient_mean_utility[n], exception=False) for n in model.N)
-    metrics["utility"]["min_overall_utility"] = min(
-        pyo.value(model.u[n, h], exception=False) for n in model.N for h in model.H)
+    basic["items"] = len(domain.items) if domain else None
+    basic["households"] = len(domain.households) if domain else None
+    basic["nutrients"] = len(domain.nutrients) if domain else None
+    if isinstance(solver_section, Mapping):
+        basic["objective_value"] = solver_section.get("objective_value")
+    else:
+        basic["objective_value"] = None
 
-    # ------------------------------------------------------------
-    # Fairness deviation stats (global_mean_deviation_from_fair_share, min_mean_deviation_per_household, min_mean_deviation_per_nutrient, min_overall_deviation_from_fair_share)
-    # ------------------------------------------------------------
-    metrics["fairness"] = {}
-    metrics["fairness"]["global_mean_deviation_from_fair_share"] = pyo.value(model.global_mean_deviation_from_fairshare, exception=False)
-    metrics["fairness"]["min_mean_deviation_from_fair_share_per_household"] = min(
-        pyo.value(model.household_mean_deviation_from_fairshare[h], exception=False) for h in model.H)
-    metrics["fairness"]["min_mean_deviation_from_fair_share_per_nutrient"] = min(
-        pyo.value(model.item_mean_deviation_from_fairshare[n], exception=False) for n in model.I)
-    metrics["fairness"]["min_overall_deviation_from_fair_share"] = min(
-        pyo.value(model.dpos[i, h] + model.dneg[i, h], exception=False) for i in model.I for h in model.H)
+    if not is_feasible:
+        basic["objective_value"] = None
+        basic["feasibility_status"] = "INFEASIBLE"
+        return {"kpi": {"basic": basic}}
 
-    # Round all metrics to 4 decimal places
-    for cat, sub in metrics.items():
-        if isinstance(sub, dict):
-            for k, v in sub.items():
-                if isinstance(v, (int, float)):
-                    sub[k] = round(float(v), 5)
+    metrics["supply"] = {
+        "total_allocation": _safe_value(model.TotAllocated),
+        "avg_allocation_per_pair": _safe_value(model.MeanAllocated),
+        "undistributed": _safe_value(model.Undistributed),
+        "total_cost": _safe_value(model.TotalCost),
+    }
+
+    metrics["utility"] = {
+        "total_nutritional_utility": _safe_value(model.total_nutritional_utility),
+        "global_mean_utility": _safe_value(model.global_mean_utility),
+        "min_mean_utility_per_household": _safe_min(
+            _safe_value(model.household_mean_utility[h]) for h in model.H
+        ),
+        "min_mean_utility_per_nutrient": _safe_min(
+            _safe_value(model.nutrient_mean_utility[n]) for n in model.N
+        ),
+        "min_overall_utility": _safe_min(
+            _safe_value(model.u[n, h]) for n in model.N for h in model.H
+        ),
+    }
+
+    metrics["fairness"] = {
+        "global_mean_deviation_from_fair_share": _safe_value(model.global_mean_deviation_from_fairshare),
+        "min_mean_deviation_from_fair_share_per_household": _safe_min(
+            _safe_value(model.household_mean_deviation_from_fairshare[h]) for h in model.H
+        ),
+        "min_mean_deviation_from_fair_share_per_nutrient": _safe_min(
+            _safe_value(model.item_mean_deviation_from_fairshare[n]) for n in model.I
+        ),
+        "min_overall_deviation_from_fair_share": _safe_min(
+            _safe_value(model.dpos[i, h] + model.dneg[i, h]) for i in model.I for h in model.H
+        ),
+    }
+
+    for category in metrics.values():
+        for key, value in list(category.items()):
+            if isinstance(value, (int, float)):
+                category[key] = round(float(value), 5)
 
     return {"kpi": metrics}
 
 
+def _safe_value(expr: Any) -> Optional[float]:
+    """Evaluate a Pyomo expression returning ``None`` when undefined."""
+
+    try:
+        val = pyo.value(expr, exception=False)
+    except Exception:  # pragma: no cover - defensive guard
+        return None
+    if val is None:
+        return None
+    try:
+        return float(val)
+    except (TypeError, ValueError):  # pragma: no cover - defensive guard
+        return None
 
 
+def _safe_min(values: Iterable[Optional[float]]) -> Optional[float]:
+    """Return the minimum of non-null values from an iterable."""
 
-
-
-
-
-'''
-
-
-
-
-
-    # Utility stats
-    util_sum = 0.0
-    util_count = 0
-    min_single = None
-    if hasattr(model, "u"):
-        nutrients = sorted(list(model.N), key=str)
-        households = sorted(list(model.H), key=str)
-
-        house_sums: Dict[Any, float] = {h: 0.0 for h in households}
-        house_counts: Dict[Any, int] = {h: 0 for h in households}
-        nut_sums: Dict[Any, float] = {n: 0.0 for n in nutrients}
-        nut_counts: Dict[Any, int] = {n: 0 for n in nutrients}
-
-        for n in nutrients:
-            for h in households:
-                value = pyo.value(model.u[n, h], exception=False)
-                if value is None:
-                    continue
-                val = float(value)
-                util_sum += val
-                util_count += 1
-                if min_single is None or val < min_single:
-                    min_single = val
-                house_sums[h] += val
-                house_counts[h] += 1
-                nut_sums[n] += val
-                nut_counts[n] += 1
-
-        house_means: List[float] = [
-            (house_sums[h] / house_counts[h]) if house_counts[h] else 0.0
-            for h in households
-        ]
-        nut_means: List[float] = [
-            (nut_sums[n] / nut_counts[n]) if nut_counts[n] else 0.0
-            for n in nutrients
-        ]
-    else:
-        house_means = []
-        nut_means = []
-        min_single = None
-
-    metrics["mean_utility"] = util_sum / util_count if util_count else 0.0
-    metrics["min_mean_utility_per_household"] = min(house_means) if house_means else 0.0
-    metrics["min_mean_utility_per_nutrient"] = min(nut_means) if nut_means else 0.0
-    metrics["min_overall_utility"] = float(min_single) if min_single is not None else 0.0
-
-
-
-    # Deviation from fair share stats (global mean deviation, min mean deviation per household, min mean deviation per nutrient, min overall deviation)
-    if hasattr(model, "u"):
-        nutrients = sorted(list(model.N), key=str)
-        households = sorted(list(model.H), key=str)
-
-        # Fair share per nutrient = mean utility for that nutrient across households
-        fair_share: Dict[Any, float] = {}
-        for n in nutrients:
-            s = 0.0
-            c = 0
-            for h in households:
-                v = pyo.value(model.u[n, h], exception=False)
-                if v is None:
-                    continue
-                s += float(v)
-                c += 1
-            fair_share[n] = (s / c) if c else 0.0
-
-        deviations: List[float] = []
-        house_dev_lists: Dict[Any, List[float]] = {h: [] for h in households}
-        nut_dev_lists: Dict[Any, List[float]] = {n: [] for n in nutrients}
-
-        for n in nutrients:
-            fs = fair_share[n]
-            for h in households:
-                v = pyo.value(model.u[n, h], exception=False)
-                if v is None:
-                    continue
-                d = abs(float(v) - fs)
-                deviations.append(d)
-                house_dev_lists[h].append(d)
-                nut_dev_lists[n].append(d)
-
-        global_mean_deviation = sum(deviations) / len(deviations) if deviations else 0.0
-        house_mean_devs: List[float] = [
-            (sum(lst) / len(lst)) if lst else 0.0 for lst in (house_dev_lists[h] for h in households)
-        ]
-        nut_mean_devs: List[float] = [
-            (sum(lst) / len(lst)) if lst else 0.0 for lst in (nut_dev_lists[n] for n in nutrients)
-        ]
-        min_mean_dev_household = min(house_mean_devs) if house_mean_devs else 0.0
-        min_mean_dev_nutrient = min(nut_mean_devs) if nut_mean_devs else 0.0
-        min_overall_deviation = min(deviations) if deviations else 0.0
-    else:
-        global_mean_deviation = 0.0
-        min_mean_dev_household = 0.0
-        min_mean_dev_nutrient = 0.0
-        min_overall_deviation = 0.0
-
-    metrics["global_mean_deviation_from_fair_share"] = global_mean_deviation
-    metrics["min_mean_deviation_per_household"] = min_mean_dev_household
-    metrics["min_mean_deviation_per_nutrient"] = min_mean_dev_nutrient
-    metrics["min_overall_deviation_from_fair_share"] = min_overall_deviation
-
-'''
-
+    filtered = [val for val in values if val is not None]
+    if not filtered:
+        return None
+    return min(filtered)
