@@ -1,0 +1,20 @@
+dataset_id,ds-a,ds-a,ds-a,ds-a
+config_id,dials-efficiency,dials-balanced,dials-fairness,dials-hard-fairness
+kpi,,,,
+Items,4.0,4.0,4.0,4.0
+Households,3.0,3.0,3.0,3.0
+Nutrients,3.0,3.0,3.0,3.0
+Objective value,6.6004,6.507,3.635,6.33817
+Total allocation,59.0,61.0,60.0,59.0
+Avg allocation per pair,19.66667,20.33333,20.0,19.66667
+Undistributed,1.0,0.0,1.0,1.0
+Total cost,10.0,9.9,9.9,9.1
+Total nutritional utility,6.6004,6.507,3.635,6.37933
+Global mean utility,0.73338,0.723,0.40389,0.70881
+Min mean utility per household,0.58223,0.65925,0.3635,0.62217
+Min mean utility per nutrient,0.32323,0.3761,0.3635,0.35488
+Min overall utility,0.0855,0.3615,0.3635,0.29725
+Global mean deviation from fair share,2.13889,1.16667,0.32407,0.80556
+Max mean deviation from fair share per household,3.33333,1.5,0.38889,1.33333
+Max mean deviation from fair share per nutrient,3.85185,2.07407,0.44444,1.11111
+Max overall deviation from fair share,5.77778,3.11111,0.66667,1.66667

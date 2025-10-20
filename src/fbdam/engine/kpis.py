@@ -64,13 +64,13 @@ def compute_kpis(
 
     metrics["fairness"] = {
         "global_mean_deviation_from_fair_share": _safe_value(model.global_mean_deviation_from_fairshare),
-        "min_mean_deviation_from_fair_share_per_household": _safe_min(
+        "max_mean_deviation_from_fair_share_per_household": _safe_max(
             _safe_value(model.household_mean_deviation_from_fairshare[h]) for h in model.H
         ),
-        "min_mean_deviation_from_fair_share_per_nutrient": _safe_min(
+        "max_mean_deviation_from_fair_share_per_nutrient": _safe_max(
             _safe_value(model.item_mean_deviation_from_fairshare[n]) for n in model.I
         ),
-        "min_overall_deviation_from_fair_share": _safe_min(
+        "max_overall_deviation_from_fair_share": _safe_max(
             _safe_value(model.dpos[i, h] + model.dneg[i, h]) for i in model.I for h in model.H
         ),
     }
@@ -105,3 +105,11 @@ def _safe_min(values: Iterable[Optional[float]]) -> Optional[float]:
     if not filtered:
         return None
     return min(filtered)
+
+def _safe_max(values: Iterable[Optional[float]]) -> Optional[float]:
+    """Return the maximum of non-null values from an iterable."""
+
+    filtered = [val for val in values if val is not None]
+    if not filtered:
+        return None
+    return max(filtered)
