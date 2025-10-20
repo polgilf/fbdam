@@ -289,3 +289,34 @@ def test_purchase_budget_enforces_no_waste() -> None:
     model.x[item, households[0]].set_value(0.0)  # Allocate nothing
     allowed_waste = pyo.value(model.PurchaseNoWaste[item].body)
     assert allowed_waste <= stock, "Should allow unallocated stock when no purchases"
+
+
+def test_slack_active_when_lambda_zero() -> None:
+    cfg = _make_config()
+    cfg["model_params"]["lambda"] = 0.0
+
+    model = build_model(cfg)
+
+    household = next(iter(model.H))
+    nutrient = next(iter(model.N))
+
+    for n in model.N:
+        for h in model.H:
+            model.u[n, h].set_value(0.25)
+
+    model.epsilon.set_value(0.4)
+
+    hh_mean = pyo.value(model.household_mean_utility[household])
+    global_mean = pyo.value(model.global_mean_utility)
+    omega = cfg["model_params"]["dials"]["omega"]
+    body = pyo.value(model.HouseholdFloor[household].body)
+
+    expected = -model.epsilon.value - (hh_mean - omega * global_mean)
+    assert body == pytest.approx(expected)
+
+    pair_body = pyo.value(model.PairFloor[nutrient, household].body)
+    kappa = cfg["model_params"]["dials"]["kappa"]
+    expected_pair = -model.epsilon.value - (
+        model.u[nutrient, household].value - kappa * global_mean
+    )
+    assert pair_body == pytest.approx(expected_pair)
