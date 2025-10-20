@@ -1,4 +1,4 @@
-household_id,name,fairshare_weight
-H1,Household 1,0.111111111
-H2,Household 2,0.333333333
-H3,Household 3,0.555555556
+household_id,name,size,fairshare_weight
+H1,Household 1,1,0.111111111
+H2,Household 2,3,0.333333333
+H3,Household 3,5,0.555555556
