@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover - fallback for older Pyomo releases
 
 from fbdam.engine.domain import DomainIndex
 from fbdam.engine.kpis import compute_kpis
+from fbdam.utils import make_run_id, parse_run_id
 
 ArtifactRows = Iterable[Sequence[Any]]
 
@@ -223,9 +224,11 @@ def _resolve_run_id(solver_results: Mapping[str, Any], timestamp: str) -> str:
     if isinstance(run_meta, Mapping):
         candidate = run_meta.get("id")
     if candidate:
-        return str(candidate)
-    compact = timestamp.replace(":", "").replace("-", "")
-    return f"fbdam-{compact}"
+        try:
+            return parse_run_id(str(candidate))["id"]
+        except ValueError:
+            return str(candidate)
+    return make_run_id("fbdam", timestamp)
 
 
 # ---------------------------------------------------------------------------

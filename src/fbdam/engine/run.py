@@ -23,6 +23,7 @@ from fbdam.engine.io import load_scenario, IOConfigError
 from fbdam.engine.model import build_model  # stub function is fine initially
 from fbdam.engine.solver import solve_model  # stub function is fine initially
 from fbdam.engine.reporting import write_report  # stub function is fine initially
+from fbdam.utils import make_run_id, parse_run_id, slugify_run_name
 
 app = typer.Typer(add_completion=False, help="FBDAM — minimal optimization system")
 console = Console()
@@ -36,15 +37,8 @@ def _utc_now_iso() -> str:
 def _generate_run_id(scenario_path: Path, started_at: datetime) -> str:
     """Create a filesystem-friendly run identifier."""
     stem = scenario_path.stem or "run"
-    slug_chars = []
-    for ch in stem.lower():
-        if ch.isalnum() or ch in {"-", "_"}:
-            slug_chars.append(ch)
-        else:
-            slug_chars.append("-")
-    slug = "".join(slug_chars).strip("-_") or "run"
-    timestamp = started_at.strftime("%Y%m%dT%H%M%SZ")
-    return f"{timestamp}_{slug}"
+    slug = slugify_run_name(stem)
+    return make_run_id(slug, started_at)
 
 
 def _snapshot_config(raw_cfg: dict, scenario_path: Path, run_id: str) -> dict:
@@ -129,7 +123,13 @@ def run(
             cfg = replace(cfg, solver=new_solver, raw=new_raw)
 
         outputs_root = outputs.expanduser().resolve()
-        run_identifier = run_id or _generate_run_id(scenario, started_at)
+        if run_id:
+            try:
+                run_identifier = parse_run_id(run_id)["id"]
+            except ValueError:
+                run_identifier = str(run_id)
+        else:
+            run_identifier = _generate_run_id(scenario, started_at)
         run_dir = outputs_root / run_identifier
         run_dir.mkdir(parents=True, exist_ok=True)
 
