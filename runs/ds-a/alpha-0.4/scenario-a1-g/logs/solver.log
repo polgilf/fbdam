@@ -1,0 +1,20 @@
+{
+  "best_feasible_objective": 0.0,
+  "best_objective_bound": 0.0,
+  "elapsed_sec": 0.0051,
+  "error_message": null,
+  "gap": null,
+  "is_feasible": true,
+  "objective_value": 0.0,
+  "solver": "mock",
+  "status": "mock",
+  "termination": "not attempted",
+  "variables": {
+    "s[h1]": 0.0,
+    "s[h2]": 0.0,
+    "x[('beans', 'h1')]": 0.0,
+    "x[('beans', 'h2')]": 0.0,
+    "x[('rice', 'h1')]": 0.0,
+    "x[('rice', 'h2')]": 0.0
+  }
+}

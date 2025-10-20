@@ -1,0 +1,23 @@
+config_id: alpha-0.6
+version: 1.0
+model:
+  objective: "maximize_TNU"
+  structure:
+    constraints:
+      - base_balance
+      - nutrient_floors
+      - equity_dials_item
+      - equity_dials_household
+      - nutritional_dials
+  dials:
+    alpha_i: 0.6
+    beta_h: 0.2
+    gamma_n: 0.85
+    omega_h: 0.75
+normalization:
+  nutrient_scaling: "per_RDI"
+  clip_utilities_to: [0.0, 1.0]
+solver_defaults:
+  mip_gap: 0.0
+  time_limit_s: 0
+  threads: "auto"

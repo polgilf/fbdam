@@ -22,16 +22,16 @@ from fbdam.engine.model import build_model
 from fbdam.engine.solver import solve_model
 from fbdam.engine.reporting import write_report
 
-# Optional: expose the Typer CLI app (if you want programmatic access)
+# Optional: expose the CLI runner for programmatic invocation
 try:
-    from fbdam.engine.run import app as cli_app  # Typer application
+    from fbdam.run import run_cli as cli_main
 except Exception:  # pragma: no cover
-    cli_app = None  # CLI may be unavailable in minimal installs
+    cli_main = None  # CLI may be unavailable in minimal installs
 
 __all__ = [
     "__version__",
     "build_model",
     "solve_model",
     "write_report",
-    "cli_app",
+    "cli_main",
 ]

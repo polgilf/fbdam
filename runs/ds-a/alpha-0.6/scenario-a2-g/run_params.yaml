@@ -1,0 +1,15 @@
+run_id: scenario-a2-g
+scenario_id: scenario-a2
+seed: 2
+overrides:
+  solver:
+    time_limit_s: 0.0
+    mip_gap: 0.01
+    threads: auto
+  model: {}
+flags:
+  quick_qa: true
+cli:
+  argv: /root/.pyenv/versions/3.12.10/bin/python --scenario scenario-a2 --run-id scenario-a2-g
+    --seed 2 --time-limit 0 --mip-gap 0.01 --threads auto
+timestamp: '2025-10-20T14:17:00.626192+00:00'

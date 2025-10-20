@@ -24,10 +24,10 @@ inputs and automatically generated reports.
 ├── guides/                   # Architecture, modeling, and reporting guides
 ├── src/fbdam/                # Package source (config, engine, CLI)
 ├── tests/                    # Pytest-based smoke/integration test
-└── outputs/example/          # Example run artifacts
+└── runs/                     # Scenario run outputs grouped by dataset/config
 ```
 
-The Typer CLI entry point lives in `src/fbdam/engine/run.py`, while
+The CLI entry point lives in `src/fbdam/run.py`, while
 `src/fbdam/engine/model.py`, `solver.py`, and `reporting.py` implement the
 core build → solve → report workflow.
 
@@ -93,17 +93,14 @@ After installation, the `fbdam` console script is available on your PATH.
        time_limit: 10
    ```
 
-2. Run the pipeline and send outputs to a directory of your choice:
+2. Run the pipeline by referencing a scenario identifier:
 
    ```bash
-    fbdam run scenarios/demo-balanced.yaml --outputs outputs/demo-run
+   python -m fbdam.run --scenario scenario-a1
    ```
 
-   Add `--solver highs` to override the solver at runtime or invoke
-   `fbdam version` to print the installed package version.
-
-   All generated artifacts (reports, KPIs, manifest, etc.) are written underneath
-`--outputs`. See `outputs/example/` for a reference run.
+   Override solver behaviour using `--time-limit`, `--mip-gap`, or `--threads`
+   at the command line. Artifacts are organised under `runs/{dataset}/{config}/{run_id}/`.
 
 ## Handling infeasible solutions
 
@@ -131,13 +128,12 @@ maximizing total nutrient utility (TNU).
 Execute it with:
 
 ```bash
-python -m fbdam.engine.run run scenarios/demo-tnu.yaml --outputs outputs/demo-tnu
+python -m fbdam.run --scenario scenario-a2 --time-limit 30 --mip-gap 0.0
 ```
 
-This creates a timestamped folder inside `outputs/demo-tnu/` containing the
-manifest, KPIs, solver report, and CSV exports for allocations and variables.
-For convenience the repository also includes `outputs/demo-tnu/sample_run/`
-as a checked-in reference execution.
+This creates a timestamped folder inside `runs/ds-a/alpha-0.6/` containing the
+atom snapshot, metrics, solver log, and QA figures. The repository includes
+fixtures under `runs/` produced by `tools/run_matrix.py` for quick inspection.
 
 ## Programmatic usage
 
@@ -146,28 +142,41 @@ You can embed FBDAM in other Python tooling without using the CLI:
 ```python
 from pathlib import Path
 from fbdam import build_model, solve_model, write_report
+from fbdam.utils import build_run_dir
 
-cfg = ...  # Build a config dict or load via fbdam.engine.io.load_scenario
-model = build_model(cfg)
+domain = ...  # DomainIndex from CSVs or constructed in memory
+config = {...}  # Matches the config schema consumed by build_model
+model = build_model(domain, config)
 results = solve_model(model, solver_name="appsi_highs", options={"time_limit": 10})
-write_report(results, Path("outputs/latest"))
+write_report(
+    model=model,
+    domain=domain,
+    solver_report=results,
+    run_dir=build_run_dir("demo", "alpha", "example"),
+    dataset_id="demo",
+    config_id="alpha",
+    scenario_id="demo-scenario",
+    run_id="example",
+    seed=1,
+    effective_solver={"time_limit_s": 10, "mip_gap": 0.0, "threads": "auto"},
+    dials={"alpha_i": 0.5, "beta_h": 0.3, "gamma_n": 0.9, "omega_h": 0.7},
+    constraint_ids=["base_balance"],
+    dataset_metadata={},
+    scenario_filters={},
+)
 ```
 
-The `fbdam.engine.domain` module contains the typed entities used in the smoke
-test (`tests/test_smoke.py`) if you need to construct scenarios in memory.
+The `fbdam.engine.domain` module contains the typed entities used in the model
+tests (`tests/test_paths_and_model.py`) if you need to construct scenarios in
+memory.
 
 ## Testing
 
-Run the automated smoke test to verify the full build → solve → report flow:
+Run the automated suite to verify the build → solve → report flow and CLI wiring:
 
 ```bash
 pytest
-# or
-pytest tests/test_smoke.py -vv
 ```
-
-The test assembles a tiny domain, solves it with HiGHS, and ensures the expected
-artifacts are created in a temporary directory.
 
 ## Further reading
 

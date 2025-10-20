@@ -3,7 +3,7 @@
 # ---------------------------------------------------------
 # - Define el paquete (src layout) y metadatos del proyecto
 # - Declara dependencias base (Pyomo, Pydantic, Typer, etc.)
-# - Expone una CLI: `fbdam` → fbdam.engine.run:app (Typer)
+# - Expone una CLI: `fbdam` → fbdam.run:main (argparse)
 # - Incluye YAMLs de catálogos/esquemas como package data
 # - Ofrece extras opcionales para el solver HiGHS:
 #     * appsi_highs  → Pyomo[appsi] + highspy
@@ -40,7 +40,7 @@ appsi_highs = ["highspy>=1.11.0"]
 highs = ["pyomo>=6.9.5"]
 
 [project.scripts]
-fbdam = "fbdam.engine.run:app"
+fbdam = "fbdam.run:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -55,3 +55,4 @@ line-length = 100
 # (Opcional) tests
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]

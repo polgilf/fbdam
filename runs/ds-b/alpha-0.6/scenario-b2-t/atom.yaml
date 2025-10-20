@@ -1,0 +1,50 @@
+meta:
+  dataset_id: ds-b
+  config_id: alpha-0.6
+  scenario_id: scenario-b2
+  run_id: scenario-b2-t
+  code_revision: ba3195d
+  constraints_used:
+  - base_balance
+  - nutrient_floors
+  - equity_dials_item
+  - equity_dials_household
+  - nutritional_dials
+  dataset_metadata:
+    dataset_id: ds-b
+    schema_version: 1.0
+    created_at: '2025-10-20'
+    description: Minimal demo dataset B
+  scenario_filters:
+    households: null
+    items: null
+  exec:
+    seed: 1
+    effective_solver:
+      mip_gap: 0.0
+      time_limit_s: 30.0
+      threads: auto
+    timestamp: '2025-10-20T14:17:05.731871+00:00'
+  model_effective_dials:
+    alpha_i: 0.6
+    beta_h: 0.2
+    gamma_n: 0.85
+    omega_h: 0.75
+solution:
+  allocations:
+    lentils:
+      h1: 0.0
+      h2: 0.0
+    maize:
+      h1: 0.0
+      h2: 0.0
+  satisfaction:
+    h1: 0.0
+    h2: 0.0
+aggregates:
+  tnu: 0.0
+  household_allocation:
+    h1: 0.0
+    h2: 0.0
+  total_supply: 32.0
+  total_requirement: 3790.0

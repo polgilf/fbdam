@@ -1,0 +1,4 @@
+scenario_id: scenario-b1
+dataset_id: ds-b
+config_id: alpha-0.4
+filters: {households: null, items: null}
