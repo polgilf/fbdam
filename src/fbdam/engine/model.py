@@ -346,7 +346,7 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
     def _global_mean(model):
         if len(model.N) == 0 or len(model.H) == 0:
             return 0.0
-        return model.total_nutritionalutility / (model.cardN * model.cardH)
+        return model.total_nutritional_utility / (model.cardN * model.cardH)
     m.global_mean_utility = pyo.Expression(
         rule=_global_mean, doc="Global mean utility across all nutrient-household pairs"
     )

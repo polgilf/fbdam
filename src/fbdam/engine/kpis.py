@@ -51,11 +51,15 @@ def compute_kpis(
     # ------------------------------------------------------------
     # Utility stats (total_utility, global_mean_utility, min(household_mean_utility), min(nutrient_mean_utility), min_overall_utility)
     # ------------------------------------------------------------
-
-    metrics["total_nutritional_utility"] = pyo.value(model.total_nutritional_utility, exception=False)
-    metrics["global_mean_utility"] = pyo.value(model.global_mean_utility, exception=False)
-    metrics["min_mean_utility_per_household"] = min(
+    metrics["utility"] = {}
+    metrics["utility"]["total_nutritional_utility"] = pyo.value(model.total_nutritional_utility, exception=False)
+    metrics["utility"]["global_mean_utility"] = pyo.value(model.global_mean_utility, exception=False)
+    metrics["utility"]["min_mean_utility_per_household"] = min(
         pyo.value(model.household_mean_utility[h], exception=False) for h in model.H)
+    metrics["utility"]["min_mean_utility_per_nutrient"] = min(
+        pyo.value(model.nutrient_mean_utility[n], exception=False) for n in model.N)
+    metrics["utility"]["min_overall_utility"] = min(
+        pyo.value(model.u[n, h], exception=False) for n in model.N for h in model.H)
     
 
     # Global mean utility
