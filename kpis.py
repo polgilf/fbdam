@@ -28,31 +28,64 @@ def compute_kpis(
     metrics: Dict[str, Any] = {}
 
     # Basic counts
+    metrics["basic"]=  {}
     if domain is not None:
-        metrics["items"] = len(domain.items)
-        metrics["households"] = len(domain.households)
-        metrics["nutrients"] = len(domain.nutrients)
+        metrics["basic"]["items"] = len(domain.items)
+        metrics["basic"]["households"] = len(domain.households)
+        metrics["basic"]["nutrients"] = len(domain.nutrients)
 
     # Objective value
     solver_section = solver_report.get("solver")
     if isinstance(solver_section, Mapping) and "objective_value" in solver_section:
-        metrics["objective_value"] = solver_section["objective_value"]
+        metrics["basic"]["objective_value"] = solver_section["objective_value"]
 
-    # Allocation stats
-    total_alloc = 0.0
-    alloc_count = 0 # Pairs household items
-    if hasattr(model, "x"):
-        items = sorted(list(model.I), key=str)
-        households = sorted(list(model.H), key=str)
-        for i in items:
-            for h in households:
-                value = pyo.value(model.x[i, h], exception=False)
-                if value is None:
-                    continue
-                total_alloc += float(value)
-                alloc_count += 1
-    metrics["total_allocation"] = total_alloc
-    metrics["avg_allocation_per_pair"] = total_alloc / alloc_count if alloc_count else 0.0
+    # ------------------------------------------------------------
+    # Allocation stats (TotalAllocated, MeanAllocated, Undistributed, TotalCost)
+    # ------------------------------------------------------------
+    metrics["supply"] = {}
+    metrics["supply"]["total_allocation"] = pyo.value(model.TotAllocated, exception=False)
+    metrics["supply"]["avg_allocation_per_pair"] = pyo.value(model.MeanAllocated, exception=False)
+    metrics["supply"]["undistributed"] = pyo.value(model.Undistributed, exception=False)
+    metrics["supply"]["total_cost"] = pyo.value(model.TotalCost, exception=False)
+
+    # ------------------------------------------------------------
+    # Utility stats (total_utility, global_mean_utility, min(household_mean_utility), min(nutrient_mean_utility), min_overall_utility)
+    # ------------------------------------------------------------
+
+    metrics["total_nutritional_utility"] = pyo.value(model.total_nutritional_utility, exception=False)
+    metrics["global_mean_utility"] = pyo.value(model.global_mean_utility, exception=False)
+    metrics["min_mean_utility_per_household"] = min(
+        pyo.value(model.household_mean_utility[h], exception=False) for h in model.H)
+    
+
+    # Global mean utility
+
+    # Min mean utility per nutrient
+
+    # Min mean utility per household
+
+    # Min utility over all nutrient-household pairs
+
+    # Round all metrics to 4 decimal places
+    for k in metrics:
+        if isinstance(metrics[k], float):
+            metrics[k] = round(metrics[k], 4)
+
+    return {"kpi": metrics}
+
+
+
+
+
+
+
+
+
+'''
+
+
+
+
 
     # Utility stats
     util_sum = 0.0
@@ -99,6 +132,8 @@ def compute_kpis(
     metrics["min_mean_utility_per_household"] = min(house_means) if house_means else 0.0
     metrics["min_mean_utility_per_nutrient"] = min(nut_means) if nut_means else 0.0
     metrics["min_overall_utility"] = float(min_single) if min_single is not None else 0.0
+
+
 
     # Deviation from fair share stats (global mean deviation, min mean deviation per household, min mean deviation per nutrient, min overall deviation)
     if hasattr(model, "u"):
@@ -154,9 +189,5 @@ def compute_kpis(
     metrics["min_mean_deviation_per_nutrient"] = min_mean_dev_nutrient
     metrics["min_overall_deviation_from_fair_share"] = min_overall_deviation
 
-    # Round all metrics to 4 decimal places
-    for k in metrics:
-        if isinstance(metrics[k], float):
-            metrics[k] = round(metrics[k], 4)
-            
-    return {"kpi": metrics}
+'''
+

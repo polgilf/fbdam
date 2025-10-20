@@ -248,7 +248,7 @@ def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
 
     def rule(model, h):
         omega = _get_dial_value(model, params, "omega", h, default=0.0)
-        return model.mean_utility[h] - omega * model.global_mean_utility >= -slack
+        return model.household_mean_utility[h] - omega * model.global_mean_utility >= -slack
 
     m.HouseholdFloor = pyo.Constraint(m.H, rule=rule)
 
@@ -261,7 +261,7 @@ def add_nutrient_floor(m: pyo.ConcreteModel, params: dict) -> None:
 
     def rule(model, n):
         gamma = _get_dial_value(model, params, "gamma", n, default=0.0)
-        return model.mean_utility_nutrient[n] - gamma * model.global_mean_utility >= -slack
+        return model.nutrient_mean_utility[n] - gamma * model.global_mean_utility >= -slack
 
     m.NutrientFloor = pyo.Constraint(m.N, rule=rule)
 

@@ -260,6 +260,10 @@ def _build_variables(
 def _build_expressions(m: pyo.ConcreteModel) -> None:
     """Create common expressions used by multiple plugins (q, means, etc.)."""
 
+    # ------------------------------------------------------------
+    # Basic expressions
+    # ------------------------------------------------------------
+
     # Delivered nutrient quantity q[n,h] := sum_i a[i,n] * x[i,h]
     def _q_expr(model, n, h):
         return sum(model.a[i, n] * model.x[i, h] for i in model.I)
@@ -268,54 +272,114 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
     # Available supply per item: Avail_i := S_i + y_i
     def _avail_expr(model, i):
         return model.S[i] + model.y[i]
-
     m.Avail = pyo.Expression(m.I, rule=_avail_expr, doc="Available units of item i (stock + purchase)")
 
     # Total available supply: TotSupply := sum_i (S_i + y_i)
     def _total_supply_expr(model):
         return sum(model.Avail[i] for i in model.I)
-
     m.TotSupply = pyo.Expression(rule=_total_supply_expr, doc="Total available supply across all items")
 
     # Total allocation per household: X_h := sum_i x[i,h]
     def _household_total_expr(model, h):
         return sum(model.x[i, h] for i in model.I)
-
     m.X = pyo.Expression(m.H, rule=_household_total_expr, doc="Total allocation delivered to household h")
+
+    # ------------------------------------------------------------
+    # Aggregate expressions (mainly for reporting)
+    # ------------------------------------------------------------
+
+    # Total allocated quantity: TotAllocated := sum_{i,h} x[i,h]
+    def _total_allocated_expr(model):
+        return sum(model.x[i, h] for i in model.I for h in model.H)
+    m.TotAllocated = pyo.Expression(rule=_total_allocated_expr, doc="Total allocated quantity across all items and households")
+
+
+    # Mean allocated quantity per household: MeanAllocated := (1 / cardH) * TotAllocated
+    def _mean_allocated_expr(model):
+        if len(model.H) == 0:
+            return 0.0
+        return model.TotAllocated / model.cardH
+    m.MeanAllocated = pyo.Expression(rule=_mean_allocated_expr, doc="Mean allocated quantity per household")
+
+
+    # Undistributed quantity: Undistributed := TotSupply - TotAllocated
+    def _undistributed_expr(model):
+        return model.TotSupply - model.TotAllocated
+    m.Undistributed = pyo.Expression(rule=_undistributed_expr, doc="Total undistributed quantity across all items")
+    
+
+    # Total purchased cost: Cost := sum_i cost[i] * y[i]
+    def _total_cost_expr(model):
+        return sum(model.cost[i] * model.y[i] for i in model.I)
+    m.TotalCost = pyo.Expression(rule=_total_cost_expr, doc="Total purchase cost across all items")
+
+
+    # ------------------------------------------------------------
+    # Nutritional utility expressions
+    # ------------------------------------------------------------
 
     # Total nutritional utility: sum_{n,h} u[n,h]
     def _total_utility_expr(model):
         return sum(model.u[n, h] for n in model.N for h in model.H)
+    m.total_nutritional_utility = pyo.Expression(rule=_total_utility_expr, doc="Aggregate nutritional utility")
 
-    m.total_utility = pyo.Expression(rule=_total_utility_expr, doc="Aggregate nutritional utility")
 
     # Household mean utility: mean over nutrients
     def _mean_u(model, h):
         return (1.0 / model.cardN) * sum(model.u[n, h] for n in model.N)
     if len(m.N) == 0:
-        m.mean_utility = pyo.Expression(m.H, initialize=0.0)
+        m.household_mean_utility = pyo.Expression(m.H, initialize=0.0)
     else:
-        m.mean_utility = pyo.Expression(m.H, rule=_mean_u)
+        m.household_mean_utility = pyo.Expression(m.H, rule=_mean_u)
+
 
     # Nutrient mean utility: mean over households
     def _mean_u_nutrient(model, n):
         return (1.0 / model.cardH) * sum(model.u[n, h] for h in model.H)
-
     if len(m.H) == 0:
-        m.mean_utility_nutrient = pyo.Expression(m.N, initialize=0.0)
+        m.nutrient_mean_utility = pyo.Expression(m.N, initialize=0.0)
     else:
-        m.mean_utility_nutrient = pyo.Expression(m.N, rule=_mean_u_nutrient)
+        m.nutrient_mean_utility = pyo.Expression(m.N, rule=_mean_u_nutrient)
+
 
     # Global mean utility: mean over households of household mean utility
     def _global_mean(model):
         if len(model.N) == 0 or len(model.H) == 0:
             return 0.0
-        return model.total_utility / (model.cardN * model.cardH)
-
+        return model.total_nutritionalutility / (model.cardN * model.cardH)
     m.global_mean_utility = pyo.Expression(
         rule=_global_mean, doc="Global mean utility across all nutrient-household pairs"
     )
 
+
+    # ------------------------------------------------------------
+    # Deviation from fair share expressions
+    # ------------------------------------------------------------
+
+    # Total deviation from fair share: sum_{i,h} (dpos[i,h] + dneg[i,h])
+    def _total_deviation_expr(model):
+        return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I for h in model.H)
+    m.total_fairshare_deviation = pyo.Expression(rule=_total_deviation_expr)
+
+
+    # Household mean deviation from fair share: mean over nutrients
+    def _mean_deviation_household(model, h):
+        return (1.0 / model.cardI) * sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I)
+    m.household_mean_fairshare_deviation = pyo.Expression(m.H, rule=_mean_deviation_household)
+
+
+    # Item mean deviation from fair share: mean over households
+    def _mean_deviation_item(model, i):
+        return (1.0 / model.cardH) * sum(model.dpos[i, h] + model.dneg[i, h] for h in model.H)
+    m.item_mean_fairshare_deviation = pyo.Expression(m.I, rule=_mean_deviation_item)
+
+
+    # Global mean deviation from fair share: mean over all nutrient-household pairs
+    def _global_mean_deviation(model):
+        if len(model.I) == 0 or len(model.H) == 0:
+            return 0.0
+        return model.total_fairshare_deviation / (model.cardI * model.cardH)
+    m.global_mean_fairshare_deviation = pyo.Expression(rule=_global_mean_deviation)
 
 # ------------------------------------------------------------
 # Apply plugins (constraints & objective)
