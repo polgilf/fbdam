@@ -15,7 +15,7 @@ python utilities/clear_path.py outputs/demo
 
 # Tests
 pytest tests/test_model_backbone.py::test_purchase_budget_enforces_allocation_of_purchases 
-
+pytest tests/test_model_backbone.py
 pytest tests/test_smoke.py
 
 # Plots
