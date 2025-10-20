@@ -82,11 +82,29 @@ write_report(results, output_dir="outputs/demo")
 
 ## 4️⃣ Notes and conventions
 
-- `R[h,n]` now replaces the former DRI table (requirement amounts).  
+- `R[h,n]` now replaces the former DRI table (requirement amounts).
   A small epsilon (1e-9) prevents division-by-zero issues.
 - Utility bounds: `u[n,h] ∈ [0,1]`.
 - Fairness constraints rely on `dpos`/`dneg` variables predeclared by the builder.
 - Plugins (registered in `constraints.py` and `objectives.py`) can be extended freely.
+
+### Purchase budget constraints
+
+When the `purchase_budget_limit` plugin is enabled, three complementary
+constraints are created inside `constraints.py`:
+
+1. **Budget limit** — \(\sum_i c_i y_i \leq B\). Purchases cannot exceed the
+   available budget.
+2. **Purchase activation** — \(y_i \leq (B / c_i) y^{\text{active}}_i\). A big-M
+   link that forces the binary activation variable `y_active[i]` to turn on when
+   any positive purchase is made.
+3. **No waste when purchasing** — \((S_i + y_i) - \sum_h x_{i,h} \leq S_i (1 -
+   y^{\text{active}}_i)\). If purchases are active the full availability
+   (donated stock plus purchases) must be allocated, whereas without purchases up
+   to the donated stock may remain unused.
+
+This structure ensures that paid-for items are only bought when they can be
+distributed, preventing waste of the monetary budget.
 
 ---
 

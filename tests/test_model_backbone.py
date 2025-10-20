@@ -245,7 +245,8 @@ def test_purchases_disabled_without_budget_constraint() -> None:
         assert pytest.approx(pyo.value(model.Avail[item])) == model.S[item]
 
 
-def test_purchase_budget_enforces_allocation_of_purchases() -> None:
+def test_purchase_budget_enforces_no_waste() -> None:
+    """Test that purchased items must be fully allocated (no waste allowed)."""
     cfg = _make_config()
     model = build_model(cfg)
 
@@ -259,19 +260,32 @@ def test_purchase_budget_enforces_allocation_of_purchases() -> None:
         for h in model.H:
             model.x[i, h].set_value(0.0)
 
+    # Test 1: Purchase activation enforcement
     # Attempt to purchase without activating should violate activation constraint
     model.y[item].set_value(1.0)
     model.y_active[item].set_value(0)
     activation_violation = pyo.value(model.PurchaseActivation[item].body)
-    assert activation_violation > 0.0
+    assert activation_violation > 0.0, "Should not allow purchases without activation"
 
-    # Activate purchases but fail to allocate — allocation constraint should be violated
+    # Test 2: No waste when purchasing - partial allocation should violate
     model.y_active[item].set_value(1)
-    allocation_violation = pyo.value(model.PurchaseAllocationEnforcement[item].body)
-    assert allocation_violation > 0.0
+    stock = pyo.value(model.S[item])
+    purchase = model.y[item].value
 
-    # Allocate the full available quantity → constraint should now be tight (body ≈ 0)
-    total_available = pyo.value(model.S[item]) + model.y[item].value
+    # Only allocate the stock, not the purchase → should violate
+    model.x[item, households[0]].set_value(stock)
+    waste_violation = pyo.value(model.PurchaseNoWaste[item].body)
+    assert waste_violation > 0.0, "Should not allow unallocated purchases"
+
+    # Test 3: Full allocation of stock + purchases → constraint satisfied
+    total_available = stock + purchase
     model.x[item, households[0]].set_value(total_available)
-    allocation_satisfied = pyo.value(model.PurchaseAllocationEnforcement[item].body)
-    assert pytest.approx(allocation_satisfied, abs=1e-9) == 0.0
+    no_waste = pyo.value(model.PurchaseNoWaste[item].body)
+    assert pytest.approx(no_waste, abs=1e-9) == 0.0, "Should satisfy when everything allocated"
+
+    # Test 4: Without purchases, unallocated stock is allowed
+    model.y[item].set_value(0.0)
+    model.y_active[item].set_value(0)
+    model.x[item, households[0]].set_value(0.0)  # Allocate nothing
+    allowed_waste = pyo.value(model.PurchaseNoWaste[item].body)
+    assert allowed_waste <= stock, "Should allow unallocated stock when no purchases"

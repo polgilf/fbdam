@@ -216,7 +216,20 @@ def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
 
 @register_constraint("purchase_budget_limit")
 def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
-    """Limit total purchases by the available monetary budget."""
+    """Limit total purchases by the available monetary budget.
+
+    This constraint creates three sub-constraints:
+    1. **Budget limit** – total purchase cost cannot exceed the budget.
+    2. **Purchase activation** – links the continuous purchase quantity ``y[i]``
+       to the binary activation variable ``y_active[i]`` via a classic big-M
+       formulation.
+    3. **No waste** – if purchasing is activated, all available units (donated
+       stock plus purchases) must be allocated; otherwise up to the donated
+       stock may remain unused.
+
+    The "no waste" requirement prevents wasting scarce budget resources on
+    items that are not ultimately distributed.
+    """
 
     budget = params.get("budget") if isinstance(params, Mapping) else None
     if budget is None:
@@ -231,7 +244,7 @@ def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
 
     m.PurchaseBudget = pyo.Constraint(rule=_budget_rule)
 
-    # Enforce that any activated purchases are fully allocated.
+    # Small epsilon used to avoid division-by-zero when computing the activation big-M.
     EPS_COST = 1e-9
 
     def _max_purchase_for_item(model, item_id: str) -> float:
@@ -247,11 +260,16 @@ def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
 
     m.PurchaseActivation = pyo.Constraint(m.I, rule=_purchase_activation_rule)
 
-    def _allocation_rule(model, item_id: str):
+    # 3. NO WASTE when purchasing
+    # If purchases are activated (y_active = 1), force full allocation of
+    # Avail[i] = S[i] + y[i]. If no purchases (y_active = 0), allow up to
+    # S[i] units of donated stock to remain unallocated.
+    def _no_waste_rule(model, item_id: str):
         unallocated = model.Avail[item_id] - sum(model.x[item_id, h] for h in model.H)
-        return unallocated <= model.S[item_id] * (1 - model.y_active[item_id])
+        max_waste_without_purchase = model.S[item_id]
+        return unallocated <= max_waste_without_purchase * (1 - model.y_active[item_id])
 
-    m.PurchaseAllocationEnforcement = pyo.Constraint(m.I, rule=_allocation_rule)
+    m.PurchaseNoWaste = pyo.Constraint(m.I, rule=_no_waste_rule)
 
 
 @register_constraint("household_adequacy_floor")
