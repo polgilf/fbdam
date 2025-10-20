@@ -1,1 +1,11 @@
-python -m fbdam.engine.run run scenarios/demo-tnu.yaml --outputs outputs/demo-tnu
+# Activate venv
+.venv\Scripts\Activate.ps1
+
+#  Check the register names ('rg' is not recognized)
+Linux:
+rg "@register_constraint" -n src/fbdam/engine/constraints.py
+Windows:
+Select-String -Path src/fbdam/engine/constraints.py -Pattern "@register_constraint" | Select-Object LineNumber, Line
+
+# Run demo
+python -m fbdam.engine.run run scenarios/demo.yaml --outputs outputs/demo

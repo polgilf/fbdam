@@ -54,14 +54,25 @@ def solve_model(
     results = _invoke_solver(solver, model)
     elapsed = time.time() - start
 
-    # Extract solution info
+    # Extract solution info - handle both APPSI and classic interfaces
     solver_info = {
         "solver": resolved_name,
         "elapsed_sec": round(elapsed, 4),
-        "termination": str(results.solver.termination_condition)
-        if hasattr(results, "solver") else "unknown",
-        "status": str(results.solver.status) if hasattr(results, "solver") else "unknown",
     }
+    
+    # APPSI interface (results has direct attributes)
+    if resolved_name == "appsi_highs" and hasattr(results, "termination_condition"):
+        solver_info["termination"] = str(results.termination_condition)
+        # APPSI doesn't have a separate 'status' - use termination_condition
+        solver_info["status"] = "ok" if str(results.termination_condition) == "optimal" else str(results.termination_condition)
+    # Classic interface (results.solver.*)
+    elif hasattr(results, "solver"):
+        solver_info["termination"] = str(results.solver.termination_condition)
+        solver_info["status"] = str(results.solver.status)
+    # Fallback
+    else:
+        solver_info["termination"] = "unknown"
+        solver_info["status"] = "unknown"
 
     # Compute objective value if available
     try:
@@ -75,7 +86,6 @@ def solve_model(
     solver_info["variables"] = var_values
 
     return solver_info
-
 
 # ---------------------------------------------------------------------
 # Internal helpers
