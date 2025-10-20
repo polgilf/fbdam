@@ -17,6 +17,9 @@ model:
     Minimal end-to-end demo that loads the bundled CSVs and the relaxed
     dial configuration from params.yaml. The model maximizes total nutrient
     utility (TNU) without a monetary budget or fairness caps.
+  params:
+    # Use “integer” (default) for discrete allocations, or “continuous” for real values.
+    x_integrality: continuous
   constraints:
     - ref: nutrition_utility_mapping
     - ref: item_supply_limit
