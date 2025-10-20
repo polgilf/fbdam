@@ -19,4 +19,10 @@ pytest tests/test_model_backbone.py
 pytest tests/test_smoke.py
 
 # Plots
-python analysis/plot_from_solution_dir.py "runs/demo_efficiency" "analysis/plots/demo_allocated_food.png"
+python analysis/plot_from_solution_dir.py "runs/ds-a/dials-balanced" "analysis/plots/demo_allocated_food_ds-a_balanced.png"
+python analysis/plot_from_solution_dir.py "runs/ds-a/dials-efficiency" "analysis/plots/demo_allocated_food_ds-a_efficiency.png"
+python analysis/plot_from_solution_dir.py "runs/ds-a/dials-fairness" "analysis/plots/demo_allocated_food_ds-a_fairness.png"
+
+# Run
+# In bash 
+bash run_experiment.sh
