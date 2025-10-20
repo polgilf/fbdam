@@ -1,0 +1,60 @@
+{
+  "run": {
+    "id": "ds-b_alpha-0-4_20251020T154508Z",
+    "started_at": "2025-10-20T15:45:08Z"
+  },
+  "solver": {
+    "name": "appsi_highs",
+    "status": "ok",
+    "termination": "TerminationCondition.optimal",
+    "elapsed_sec": 0.1139,
+    "objective_value": 4.0,
+    "gap": 0.0,
+    "best_feasible_objective": 4.0,
+    "best_objective_bound": 4.0,
+    "is_feasible": true
+  },
+  "raw": {
+    "solver": "appsi_highs",
+    "elapsed_sec": 0.1139,
+    "termination": "TerminationCondition.optimal",
+    "status": "ok",
+    "is_feasible": true,
+    "error_message": null,
+    "best_feasible_objective": 4.0,
+    "best_objective_bound": 4.0,
+    "gap": 0.0,
+    "objective_value": 4.0,
+    "variables": {
+      "x[('peas', 'A1')]": 12.0,
+      "x[('peas', 'A2')]": 12.0,
+      "x[('maize', 'A1')]": 15.0,
+      "x[('maize', 'A2')]": 15.0,
+      "x[('oil', 'A1')]": 8.0,
+      "x[('oil', 'A2')]": 8.0,
+      "u[('prot', 'A1')]": 1.0,
+      "u[('prot', 'A2')]": 1.0,
+      "u[('cal', 'A1')]": 1.0,
+      "u[('cal', 'A2')]": 1.0,
+      "y[peas]": 0.0,
+      "y[maize]": 0.0,
+      "y[oil]": 1.0,
+      "y_active[peas]": 0.0,
+      "y_active[maize]": 0.0,
+      "y_active[oil]": 1.0,
+      "dpos[('peas', 'A1')]": 0.0,
+      "dpos[('peas', 'A2')]": 0.0,
+      "dpos[('maize', 'A1')]": 0.0,
+      "dpos[('maize', 'A2')]": 0.0,
+      "dpos[('oil', 'A1')]": 0.0,
+      "dpos[('oil', 'A2')]": 0.0,
+      "dneg[('peas', 'A1')]": 0.5,
+      "dneg[('peas', 'A2')]": 0.5,
+      "dneg[('maize', 'A1')]": -0.0,
+      "dneg[('maize', 'A2')]": -0.0,
+      "dneg[('oil', 'A1')]": -0.0,
+      "dneg[('oil', 'A2')]": -0.0,
+      "epsilon[None]": 0.0
+    }
+  }
+}

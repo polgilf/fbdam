@@ -1,0 +1,12 @@
+run_id: ds-a_alpha-0-4_20251020T154503Z
+dataset_id: ds-a
+config_id: alpha-0.4
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 4.0
+gap: 0.0
+best_feasible_objective: 4.0
+best_objective_bound: 4.0
+elapsed_sec: 0.1289
+profile_id: time-limited

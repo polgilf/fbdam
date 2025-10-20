@@ -1,0 +1,19 @@
+run_id: ds-b_alpha-0-4_20251020T154509Z
+scenario: C:\Users\Pol\git\fbdam\scenarios\ds-b_alpha-0.4.yaml
+dataset:
+  id: ds-b
+  path: C:\Users\Pol\git\fbdam\data\ds-b
+config:
+  id: alpha-0.4
+  path: C:\Users\Pol\git\fbdam\configs\alpha-0.4.yaml
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 60
+    mip_rel_gap: 0.01
+    log_to_console: false
+    log_file: C:\Users\Pol\git\fbdam\runs\ds-b\alpha-0-4\ds-b_alpha-0-4_20251020T154509Z\solver.log
+profile:
+  id: gap-limited
+  path: C:\Users\Pol\git\fbdam\profiles\gap-limited.yaml
+  description: Target a tighter optimality gap without a strict time limit.
