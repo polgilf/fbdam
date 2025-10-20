@@ -359,27 +359,27 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
     # Total deviation from fair share: sum_{i,h} (dpos[i,h] + dneg[i,h])
     def _total_deviation_expr(model):
         return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I for h in model.H)
-    m.total_fairshare_deviation = pyo.Expression(rule=_total_deviation_expr)
+    m.total_deviation_from_fairshare = pyo.Expression(rule=_total_deviation_expr)
 
 
     # Household mean deviation from fair share: mean over nutrients
     def _mean_deviation_household(model, h):
         return (1.0 / model.cardI) * sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I)
-    m.household_mean_fairshare_deviation = pyo.Expression(m.H, rule=_mean_deviation_household)
+    m.household_mean_deviation_from_fairshare = pyo.Expression(m.H, rule=_mean_deviation_household)
 
 
     # Item mean deviation from fair share: mean over households
     def _mean_deviation_item(model, i):
         return (1.0 / model.cardH) * sum(model.dpos[i, h] + model.dneg[i, h] for h in model.H)
-    m.item_mean_fairshare_deviation = pyo.Expression(m.I, rule=_mean_deviation_item)
+    m.item_mean_deviation_from_fairshare = pyo.Expression(m.I, rule=_mean_deviation_item)
 
 
     # Global mean deviation from fair share: mean over all nutrient-household pairs
     def _global_mean_deviation(model):
         if len(model.I) == 0 or len(model.H) == 0:
             return 0.0
-        return model.total_fairshare_deviation / (model.cardI * model.cardH)
-    m.global_mean_fairshare_deviation = pyo.Expression(rule=_global_mean_deviation)
+        return model.total_deviation_from_fairshare / (model.cardI * model.cardH)
+    m.global_mean_deviation_from_fairshare = pyo.Expression(rule=_global_mean_deviation)
 
 # ------------------------------------------------------------
 # Apply plugins (constraints & objective)
