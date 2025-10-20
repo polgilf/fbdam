@@ -76,11 +76,13 @@ class Nutrient:
 class Household:
     """
     A demand recipient (e.g., a family, household, or beneficiary unit).
+    - members: household size (>= 0); used to derive normalized fair-share
     - fairshare_weight: proportional weight used in fairness constraints (>= 0)
     - group: optional bucket label (e.g., region or vulnerability group)
     """
     household_id: HouseholdId
     name: str
+    members: float = 1.0
     fairshare_weight: float = 1.0
     group: Optional[str] = None
     metadata: Optional[Mapping[str, str]] = None
@@ -90,6 +92,11 @@ class Household:
             raise ValueError("Household.household_id cannot be empty")
         if not self.name:
             raise ValueError("Household.name cannot be empty")
+        if self.members < 0:
+            raise ValueError(
+                "Household.members must be >= 0 "
+                f"(got {self.members}) for {self.household_id}"
+            )
         if self.fairshare_weight < 0:
             raise ValueError(
                 "Household.fairshare_weight must be >= 0 "

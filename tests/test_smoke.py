@@ -39,8 +39,8 @@ def build_minimal_domain() -> DomainIndex:
     }
 
     households = {
-        "h1": Household(household_id="h1", name="Household 1"),
-        "h2": Household(household_id="h2", name="Household 2"),
+        "h1": Household(household_id="h1", name="Household 1", members=1),
+        "h2": Household(household_id="h2", name="Household 2", members=1),
     }
 
     # protein content per item

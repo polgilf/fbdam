@@ -10,37 +10,40 @@ from fbdam.engine.io import load_scenario
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_dataset_a_alpha_04_is_loaded_correctly():
-    scenario_path = ROOT / "scenarios" / "ds-a_alpha-0.4.yaml"
+def test_dataset_a_balanced_is_loaded_correctly():
+    scenario_path = ROOT / "scenarios" / "ds-a_dials-balanced.yaml"
 
     cfg = load_scenario(scenario_path)
     domain = cfg.domain
 
     # Items
-    assert set(domain.items) == {"rice", "beans", "lentils"}
-    assert domain.items["rice"].stock == pytest.approx(40.0)
-    assert domain.items["beans"].cost == pytest.approx(1.5)
+    assert set(domain.items) == {"rice", "beans", "milk", "apples"}
+    assert domain.items["rice"].stock == pytest.approx(20.0)
+    assert domain.items["beans"].cost == pytest.approx(1.2)
 
     # Nutrients
-    assert set(domain.nutrients) == {"cal", "prot"}
+    assert set(domain.nutrients) == {"cal", "prot", "calc"}
 
     # Households and weights
-    assert set(domain.households) == {"H1", "H2"}
-    assert domain.households["H1"].fairshare_weight == pytest.approx(0.6)
+    assert set(domain.households) == {"H1", "H2", "H3"}
+    h1 = domain.households["H1"]
+    total_members = sum(h.members for h in domain.households.values())
+    assert h1.members == pytest.approx(1.0)
+    assert h1.fairshare_weight == pytest.approx(h1.members / total_members)
 
     # Requirements and item nutrients
-    assert domain.requirements[("H1", "prot")].amount == pytest.approx(50)
-    assert domain.item_nutrients[("lentils", "prot")].qty_per_unit == pytest.approx(12)
+    assert domain.requirements[("H2", "prot")].amount == pytest.approx(1200)
+    assert domain.item_nutrients[("beans", "prot")].qty_per_unit == pytest.approx(210)
 
     # Allocation bounds (item, household)
     bounds = domain.bounds[("beans", "H2")]
     assert bounds.lower == pytest.approx(0)
-    assert bounds.upper == pytest.approx(15)
+    assert bounds.upper == pytest.approx(9)
 
     # Model parameters from scenario
     params = cfg.model_params
-    assert params["budget"] == pytest.approx(120.0)
-    assert params["lambda"] == pytest.approx(0.5)
-    assert params["dials"]["alpha"] == pytest.approx(0.4)
+    assert params["budget"] == pytest.approx(10.0)
+    assert params["lambda"] == pytest.approx(0.0)
+    assert params["dials"]["alpha"] == pytest.approx(0.5)
     assert params["dials"]["beta"] == pytest.approx(0.5)
     assert len(params["dials"]) == 6
