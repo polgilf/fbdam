@@ -1,5 +1,5 @@
 version: v1
-name: Alpha fairness dial at 0.4
+name: Efficiency
 model:
   description: |
     Base model with fairness and adequacy constraints. This configuration
