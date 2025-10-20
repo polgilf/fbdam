@@ -65,6 +65,20 @@ def solve_model(
         solver_info["termination"] = str(results.termination_condition)
         # APPSI doesn't have a separate 'status' - use termination_condition
         solver_info["status"] = "ok" if str(results.termination_condition) == "optimal" else str(results.termination_condition)
+        solver_info["best_feasible_objective"] = getattr(results, "best_feasible_objective", None)
+        solver_info["best_objective_bound"] = getattr(results, "best_objective_bound", None)
+        # Compute gap if both values are available
+        if solver_info["best_feasible_objective"] is not None and solver_info["best_objective_bound"] is not None:
+            feasible = solver_info["best_feasible_objective"]
+            bound = solver_info["best_objective_bound"]
+            if feasible != 0:
+                gap = abs(feasible - bound) / abs(feasible)
+                solver_info["gap"] = round(gap, 6)
+            else:
+                solver_info["gap"] = None
+        else:
+            solver_info["gap"] = None
+
     # Classic interface (results.solver.*)
     elif hasattr(results, "solver"):
         solver_info["termination"] = str(results.solver.termination_condition)
@@ -199,7 +213,6 @@ def _mock_solve(model: pyo.ConcreteModel, solver_name: str, elapsed: float) -> D
         "solver": solver_name,
         "elapsed_sec": round(elapsed, 4),
         "termination": "not attempted",
-        "status": "mock-solution",
     }
 
     try:
@@ -236,7 +249,6 @@ def print_solver_summary(results: Dict[str, Any]) -> None:
     """Pretty-print minimal solver info."""
     print("\n=== Solver Summary ===")
     print(f"Solver:        {results.get('solver')}")
-    print(f"Status:        {results.get('status')}")
     print(f"Termination:   {results.get('termination')}")
     print(f"Time (s):      {results.get('elapsed_sec')}")
     print(f"Objective val: {results.get('objective_value')}")
@@ -315,7 +327,6 @@ def solve_with_highs(m, run_id: str, base_outputs: Path) -> dict:
         "mps_file": str(mps_file),
         # Campos típicos de interés si los expone 'res'
         "termination_condition": getattr(getattr(res, "solver", None), "termination_condition", None),
-        "status": getattr(getattr(res, "solver", None), "status", None),
         "time": getattr(getattr(res, "solver", None), "time", None),
     }
     return meta

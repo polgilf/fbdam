@@ -23,12 +23,30 @@ model:
     - ref: purchase_budget_limit
       override:
         budget: 10
+    # Equity activation and dials 
+    - ref: fairshare_deviation_identity
+    - ref: item_equity_aggregate_cap
+      override:
+        alpha: 0.1 # 0 for perfect fairness, 1 for no fairness constraint
+    - ref: household_equity_aggregate_cap
+      override:
+        beta: 0.1  # 0 for perfect fairness, 1 for no fairness constraint
     - ref: pairwise_equity_cap
       override:
-        rho: 0
+        rho: 0   # 0 for perfect fairness, 1 for no fairness constraint
+    # Nutritional adequacy floors
+    - ref: household_adequacy_floor
+      override:
+        omega: 0.9 # 1 for full adequacy (relative to global mean), 0 for no adequacy constraint
+        use_slack: False
+    - ref: nutrient_adequacy_floor
+      override:
+        gamma: 0.9  # 1 for full adequacy (relative to global mean), 0 for no adequacy constraint
+        use_slack: False
     - ref: pairwise_adequacy_floor
       override:
-        kappa: 0.8
+        kappa: 0.9  # 1 for full adequacy (relative to global mean), 0 for no adequacy constraint
+        use_slack: False
 
   objectives:
     - ref: sum_utility
