@@ -639,7 +639,9 @@ def write_markdown_summary(
         lines.append("")
         lines.append("## Troubleshooting suggestions")
         lines.append("- Check the solver log for detailed infeasibility analysis")
-        lines.append("- Review constraint dial values (alpha, beta, gamma, kappa, rho, omega)")
+        lines.append(
+            "- Review constraint dial values (alpha_i, beta_h, gamma_i_h, kappa_n, rho_h, omega_n_h)"
+        )
         lines.append("- Verify that requirements are achievable with available stock + budget")
         lines.append("- Consider relaxing adequacy floors or equity caps")
         lines.append("- Enable epsilon slack with a small lambda penalty")

@@ -292,7 +292,7 @@ If `is_feasible` is False, append a new section at the end of the report:
 ```markdown
 ## Troubleshooting suggestions
 - Check the solver log for detailed infeasibility analysis
-- Review constraint dial values (alpha, beta, gamma, kappa, rho, omega)
+- Review constraint dial values (alpha_i, beta_h, gamma_i_h, kappa_n, rho_h, omega_n_h)
 - Verify that requirements are achievable with available stock + budget
 - Consider relaxing adequacy floors or equity caps
 - Enable epsilon slack with a small lambda penalty
@@ -400,8 +400,8 @@ Create a new test scenario YAML file with impossible constraints:
 
 **Scenario characteristics:**
 
-* Set `alpha` and `beta` to 0.0 (perfect allocation equity impossible with unequal households)
-* Set `rho` and `kappa` to 1.0 (all households must equal global mean - contradictory)
+* Set `alpha_i` and `beta_h` to 0.0 (perfect allocation equity impossible with unequal households)
+* Set `gamma_i_h` and `omega_n_h` to 1.0 (all households must equal global mean - contradictory)
 * Set budget very low (insufficient to buy necessary items)
 
 **Expected behavior:**

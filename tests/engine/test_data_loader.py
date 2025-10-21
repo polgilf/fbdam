@@ -44,6 +44,6 @@ def test_dataset_a_balanced_is_loaded_correctly():
     params = cfg.model_params
     assert params["budget"] == pytest.approx(10.0)
     assert params["lambda"] == pytest.approx(0.0)
-    assert params["dials"]["alpha"] == pytest.approx(0.5)
-    assert params["dials"]["beta"] == pytest.approx(0.5)
+    assert params["dials"]["alpha_i"] == pytest.approx(0.3)
+    assert params["dials"]["beta_h"] == pytest.approx(0.3)
     assert len(params["dials"]) == 6

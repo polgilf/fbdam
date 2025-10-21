@@ -11,15 +11,15 @@ lambda: 0.0
 lambda_penalty: 0.0
 
 dials:
-  alpha:
+  alpha_i:
     default: 9999.0
-  beta:
+  beta_h:
     default: 9999.0
-  gamma:
-    default: 9999.0
-  kappa:
+  gamma_i_h:
     default: 0.0
-  rho:
+  kappa_n:
+    default: 9999.0
+  rho_h:
     default: 0.0
-  omega:
+  omega_n_h:
     default: 0.0

@@ -19,7 +19,7 @@ A Configurable Multi-Objective Framework for Equitable and Nutritious Food Distr
 \texttt{pol.gil@tilburguniversity.edu}}
 
 \begin{abstract}
-This paper presents the \emph{Food Basket Design and Allocation Model} (FBDAM), a configurable mixed-integer linear programming (MILP) framework for the design and distribution of food baskets under simultaneous efficiency, allocation equity, and nutritional adequacy objectives. The model maximizes aggregate nutritional utility while enforcing two forms of equity: proportional fair-share constraints $(\alpha, \beta, \rho)$ that regulate allocation equity, and minimum utility floors $(\gamma, \kappa, \omega)$ that guarantee nutritional adequacy. A penalized slack variable enables a smooth transition between soft and hard feasibility regimes. The proposed formulation preserves linearity and interpretability, provides explicit policy levers for decision makers, and supports diagnostic analysis of equity--efficiency trade-offs. This methodological contribution aims to provide a transparent, extendable foundation for operational research in equitable food distribution and humanitarian supply chain planning.
+This paper presents the \emph{Food Basket Design and Allocation Model} (FBDAM), a configurable mixed-integer linear programming (MILP) framework for the design and distribution of food baskets under simultaneous efficiency, allocation equity, and nutritional adequacy objectives. The model maximizes aggregate nutritional utility while enforcing two forms of equity: proportional fair-share constraints $(\alpha_i, \beta_h, \gamma_{i,h})$ that regulate allocation equity, and minimum utility floors $(\kappa_n, \rho_h, \omega_{n,h})$ that guarantee nutritional adequacy. A penalized slack variable enables a smooth transition between soft and hard feasibility regimes. The proposed formulation preserves linearity and interpretability, provides explicit policy levers for decision makers, and supports diagnostic analysis of equity--efficiency trade-offs. This methodological contribution aims to provide a transparent, extendable foundation for operational research in equitable food distribution and humanitarian supply chain planning.
 \end{abstract}
 
 \begin{keyword}
@@ -53,8 +53,8 @@ R_{h,n} & : \text{required quantity of nutrient } n \text{ for household } h,\\
 w_h & : \text{fair-share weight for household } h,\\
 B & : \text{available budget for purchases},\\
 \lambda & : \text{penalty coefficient on global slack},\\
-\alpha_i,\, \beta_h,\, \rho_{i,h} & : \text{allocation equity dials (item, household, pairwise)},\\
-\gamma_n,\, \kappa_{n,h}, \, \omega_h & : \text{nutritional adequacy dials (nutrient, pairwise, household)}.
+\alpha_i,\, \beta_h,\, \gamma_{i,h} & : \text{allocation equity dials (item, household, pairwise)},\\
+\kappa_n,\, \rho_h, \, \omega_{n,h} & : \text{nutritional adequacy dials (nutrient, household, pairwise)}.
 \end{align*}
 
 All parameters are non-negative. The dials take values in $[0,1]$.
@@ -103,10 +103,10 @@ u_{n,h} &\in [0,1] && \text{normalized nutritional utility of nutrient $n$ for h
 & x_{i,h} - w_h(S_i+y_i) = \delta_{i,h}^{+}-\delta_{i,h}^{-} && \forall i,h \tag{3a}\\
 & \sum_{h} (\delta_{i,h}^{+}+\delta_{i,h}^{-}) \le \alpha_i (S_i+y_i) && \forall i \tag{3b}\\
 & \sum_{i} (\delta_{i,h}^{+}+\delta_{i,h}^{-}) \le \beta_h w_h\!\!\sum_{i}(S_i+y_i) && \forall h \tag{3c}\\
-& \delta_{i,h}^{+}+\delta_{i,h}^{-} \le \rho_{i,h}w_h(S_i+y_i) && \forall i,h \tag{3d}\\
-& \frac{1}{|\mathcal{N}|}\sum_{n} u_{n,h} \ge \omega_h \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall h \tag{4a}\\
-& \frac{1}{|\mathcal{H}|}\sum_{h} u_{n,h} \ge \gamma_n \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall n \tag{4b}\\
-& u_{n,h} \ge \kappa_{n,h} \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall n,h \tag{4c}\\
+& \delta_{i,h}^{+}+\delta_{i,h}^{-} \le \gamma_{i,h}w_h(S_i+y_i) && \forall i,h \tag{3d}\\
+& \frac{1}{|\mathcal{N}|}\sum_{n} u_{n,h} \ge \rho_h \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall h \tag{4a}\\
+& \frac{1}{|\mathcal{H}|}\sum_{h} u_{n,h} \ge \kappa_n \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall n \tag{4b}\\
+& u_{n,h} \ge \omega_{n,h} \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall n,h \tag{4c}\\
 & x_{i,h},u_{n,h},y_i,\delta_{i,h}^{\pm},\varepsilon \ge 0,\; y_i^{\mathrm{active}}\!\in\!\{0,1\}. \notag
 \end{align}
 

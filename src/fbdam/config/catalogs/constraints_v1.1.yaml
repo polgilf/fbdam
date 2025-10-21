@@ -29,7 +29,7 @@ constraints:
     params: {}
 
   - id: pairwise_equity_cap
-    description: "Limits individual (item, household) L1 deviation (dial: gamma_ih)"
+    description: "Limits individual (item, household) L1 deviation (dial: gamma_i_h)"
     params: {}
 
   # Nutritional adequacy floors (relative to global mean)
@@ -44,6 +44,6 @@ constraints:
       use_slack: False
 
   - id: pairwise_adequacy_floor
-    description: "Ensures utility per (nutrient, household) ≥ omega_nh × global mean (dial: omega_nh)"
+    description: "Ensures utility per (nutrient, household) ≥ omega_n_h × global mean (dial: omega_n_h)"
     params:
       use_slack: False

@@ -80,13 +80,13 @@ After installation, the `fbdam` console script is available on your PATH.
    model:
      dials:
       # Allocation equity dials (proportional distribution)
-      alpha: 0.25
-      beta: 0.15
-      rho: 0.30
+      alpha_i: 0.25
+      beta_h: 0.15
+      gamma_i_h: 0.30
       # Nutritional adequacy dials (minimum outcomes)
-      gamma: 0.20
-      kappa: 0.10
-      omega: 0.05
+      kappa_n: 0.20
+      rho_h: 0.05
+      omega_n_h: 0.10
      budget: 1500
      lambda: 0.8
     constraints:
@@ -94,7 +94,7 @@ After installation, the `fbdam` console script is available on your PATH.
       - ref: fairshare_deviation_identity
       - ref: household_equity_aggregate_cap
         override:
-          beta: 0.25
+          beta_h: 0.25
      objectives:
        - ref: sum_utility
    solver:

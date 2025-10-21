@@ -35,11 +35,11 @@ model:
     - ref: sum_utility
   dials:
     # Allocation equity dials (strict/medium)
-    alpha: 0.4
-    beta: 0.2
-    rho: 0.6
+    alpha_i: 0.4
+    beta_h: 0.2
+    gamma_i_h: 0.6
 
     # Nutritional adequacy dials (tight)
-    gamma: 0.5
-    kappa: 0.3
-    omega: 0.8
+    kappa_n: 0.5
+    rho_h: 0.8
+    omega_n_h: 0.3
