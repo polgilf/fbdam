@@ -26,28 +26,28 @@ kpis:
   - id: nutrition.min_pairwise_utility
     label: Min overall nutritional utility
   - id: allocation_equity.global_mean_deviation_from_fairshare
-    label: Global mean deviation from fair share
+    label: Global mean deviation (abs)
   - id: allocation_equity.max_household_mean_deviation
-    label: Max mean deviation from fair share per household
+    label: Max household mean deviation (abs)
   - id: allocation_equity.max_item_mean_deviation
-    label: Max mean deviation from fair share per food item
+    label: Max item mean deviation (abs)
   - id: allocation_equity.max_pairwise_deviation
-    label: Max overall deviation from fair share
+    label: Worst-case deviation (abs)
   - id: allocation_equity.max_household_relative_deviation
-    label: Max relative deviation from fair share per household
+    label: Max household deviation (rel)
   - id: allocation_equity.max_item_relative_deviation
-    label: Max relative deviation from fair share per food item
+    label: Max item deviation (rel)
   - id: allocation_equity.max_pairwise_relative_deviation
-    label: Max overall relative deviation from fair share
+    label: Worst-case deviation (rel)
   - id: nutritional_adequacy.min_household_mean_utility
     label: Min household mean utility (adequacy)
   - id: nutritional_adequacy.min_nutrient_mean_utility
     label: Min nutrient mean utility (adequacy)
   - id: nutritional_adequacy.min_pairwise_utility
-    label: Min nutrient-household utility (adequacy)
+    label: Min nutrient–household utility (adequacy)
   - id: nutritional_adequacy.household_adequacy_gap
-    label: Household adequacy gap (relative to mean)
+    label: Household adequacy gap (rel)
   - id: nutritional_adequacy.nutrient_adequacy_gap
-    label: Nutrient adequacy gap (relative to mean)
+    label: Nutrient adequacy gap (rel)
   - id: nutritional_adequacy.pairwise_adequacy_gap
-    label: Pairwise adequacy gap (relative to mean)
+    label: Pairwise adequacy gap (rel)
