@@ -173,7 +173,7 @@ def constraint_handler(name):
 ```
 
 - `apply_constraints(model, catalog_yaml, dials)` — iterates IDs → looks up handlers → applies rules.
-- Centralize dial resolution (e.g., `_dial(dials, "alpha", default=0.2)`).
+- Centralize dial resolution (e.g., `_dial(dials, "alpha_i", default=0.2)`).
 
 **Important:** No business logic in `model.py`; all constraint specifics live behind handlers.
 

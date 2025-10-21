@@ -27,11 +27,11 @@ model:
     - ref: sum_utility
   dials:
     # Allocation equity dials (balanced) # 30% max deviation (more noticeable constraint)
-    alpha: 0.3 
-    beta: 0.3
-    rho: 0.3
+    alpha_i: 0.3
+    beta_h: 0.3
+    gamma_i_h: 0.3
 
     # Nutritional adequacy dials (balanced) # 60% of mean (more meaningful floor)
-    gamma: 0.6
-    kappa: 0.6
-    omega: 0.6
+    kappa_n: 0.6
+    rho_h: 0.6
+    omega_n_h: 0.6

@@ -30,11 +30,11 @@ model:
     budget: 10
   dials:
     # Allocation equity dials (relaxed)
-    alpha: 0.9
-    beta: 0.9
-    rho: 0.9
+    alpha_i: 0.9
+    beta_h: 0.9
+    gamma_i_h: 0.9
 
     # Nutritional adequacy dials (strict)
-    gamma: 0.9
-    kappa: 0.9
-    omega: 0.9
+    kappa_n: 0.9
+    rho_h: 0.9
+    omega_n_h: 0.9

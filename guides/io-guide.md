@@ -45,12 +45,12 @@ data:
 
 model:
   dials:
-    alpha: 0.25
-    beta: 0.15
-    gamma: 0.20
-    kappa: 0.10
-    rho: 0.30
-    omega: 0.05
+    alpha_i: 0.25
+    beta_h: 0.15
+    gamma_i_h: 0.30
+    kappa_n: 0.20
+    rho_h: 0.05
+    omega_n_h: 0.10
   budget: 1500
   lambda: 0.8
   constraints:
@@ -58,7 +58,7 @@ model:
       override: {}
     - ref: household_equity_aggregate_cap
       override:
-        beta: 0.25
+        beta_h: 0.25
   objectives:
     - ref: sum_utility
 
@@ -130,7 +130,7 @@ ScenarioConfig(
   },
   constraints=[
     MaterializedConstraint(id='nutrition_utility_mapping', params={}),
-    MaterializedConstraint(id='household_equity_aggregate_cap', params={'beta': 0.25})
+    MaterializedConstraint(id='household_equity_aggregate_cap', params={'beta_h': 0.25})
   ],
   objectives=[MaterializedObjective(id='sum_utility', name='sum_utility', sense='maximize', params={})],
   solver=SolverConfig(name='appsi_highs', options={'time_limit': 10}),
