@@ -33,3 +33,9 @@ kpis:
     label: Max mean deviation from fair share per food item
   - id: fairness.max_overall_deviation_from_fair_share
     label: Max overall deviation from fair share
+  - id: fairness.max_relative_deviation_from_fair_share_per_household
+    label: Max relative deviation from fair share per household
+  - id: fairness.max_relative_deviation_from_fair_share_per_food_item
+    label: Max relative deviation from fair share per food item
+  - id: fairness.max_relative_deviation_from_fair_share_per_pair
+    label: Max overall relative deviation from fair share

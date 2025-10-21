@@ -375,12 +375,12 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
 
 
     # Household mean utility: mean over nutrients
-    def _mean_u(model, h):
+    def _mean_u_household(model, h):
         return (1.0 / model.cardN) * sum(model.u[n, h] for n in model.N)
     if len(m.N) == 0:
         m.household_mean_utility = pyo.Expression(m.H, initialize=0.0)
     else:
-        m.household_mean_utility = pyo.Expression(m.H, rule=_mean_u)
+        m.household_mean_utility = pyo.Expression(m.H, rule=_mean_u_household)
 
 
     # Nutrient mean utility: mean over households
@@ -411,26 +411,54 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
         return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I for h in model.H)
     m.total_deviation_from_fairshare = pyo.Expression(rule=_total_deviation_expr)
 
+    # ----------------------------
+    # Absolute deviation expressions
+    # ----------------------------
 
-    # Household mean deviation from fair share: mean over nutrients
-    def _mean_deviation_household(model, h):
-        return (1.0 / model.cardI) * sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I)
-    m.household_mean_deviation_from_fairshare = pyo.Expression(m.H, rule=_mean_deviation_household)
-    
-    
-    # Item mean deviation from fair share: mean over households
+    # Item mean absolute deviation from fair share: mean over households
     def _mean_deviation_item(model, i):
         return (1.0 / model.cardH) * sum(model.dpos[i, h] + model.dneg[i, h] for h in model.H)
     m.item_mean_deviation_from_fairshare = pyo.Expression(m.I, rule=_mean_deviation_item)
 
 
-    # Global mean deviation from fair share: mean over all nutrient-household pairs
+    # Household mean absolute deviation from fair share: mean over nutrients
+    def _mean_deviation_household(model, h):
+        return (1.0 / model.cardI) * sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I)
+    m.household_mean_deviation_from_fairshare = pyo.Expression(m.H, rule=_mean_deviation_household)
+    
+    
+    # Global mean absolute deviation from fair share: mean over all nutrient-household pairs
     def _global_mean_deviation(model):
         if len(model.I) == 0 or len(model.H) == 0:
             return 0.0
         return model.total_deviation_from_fairshare / (model.cardI * model.cardH)
     m.global_mean_deviation_from_fairshare = pyo.Expression(rule=_global_mean_deviation)
 
+    # ----------------------------
+    # Relative deviation expressions
+    # ----------------------------
+
+    # Item mean relative deviation from fair share: mean over households ("materialized alpha")
+    def _relative_deviation_from_fair_share_item(model, i):
+        total_item_deviation = sum(model.dpos[i, h] + model.dneg[i, h] for h in model.H) # sum over households for item i
+        total_available = sum(model.Avail[i] for i in model.I)
+        return total_item_deviation / total_available
+    m.item_mean_relative_deviation_from_fair_share = pyo.Expression(m.I, rule=_relative_deviation_from_fair_share_item)
+
+    # Household mean relative deviation from fair share: mean over nutrients ("materialized beta")
+    def _relative_deviation_from_fair_share_household(model, h):
+        total_household_deviation = sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) # sum over items for household h
+        fair_target = sum(model.fairshare_weight[h] * model.Avail[i] for i in model.I)
+        return total_household_deviation / fair_target
+    m.household_mean_relative_deviation_from_fair_share = pyo.Expression(m.H, rule=_relative_deviation_from_fair_share_household)
+
+    # Individual pair relative deviation from fair share ("materialized rho")
+    def _relative_deviation_from_fair_share_pair(model, i, h):
+        total_pair_deviation = model.dpos[i, h] + model.dneg[i, h]
+        fair_target = model.fairshare_weight[h] * model.Avail[i]
+        return total_pair_deviation / fair_target
+    m.pair_relative_deviation_from_fair_share = pyo.Expression(m.I, m.H, rule=_relative_deviation_from_fair_share_pair)
+        
 # ------------------------------------------------------------
 # Apply plugins (constraints & objective)
 # ------------------------------------------------------------

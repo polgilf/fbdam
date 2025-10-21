@@ -73,6 +73,15 @@ def compute_kpis(
         "max_overall_deviation_from_fair_share": _safe_max(
             _safe_value(model.dpos[i, h] + model.dneg[i, h]) for i in model.I for h in model.H
         ),
+        "max_relative_deviation_from_fair_share_per_household": _safe_max(
+            _safe_value(model.household_mean_relative_deviation_from_fair_share[h]) for h in model.H
+        ),
+        "max_relative_deviation_from_fair_share_per_food_item": _safe_max(
+            _safe_value(model.item_mean_relative_deviation_from_fair_share[i]) for i in model.I
+        ),
+        "max_relative_deviation_from_fair_share_per_pair": _safe_max(
+            _safe_value(model.pair_relative_deviation_from_fair_share[i, h]) for i in model.I for h in model.H
+        ),        
     }
 
     for category in metrics.values():

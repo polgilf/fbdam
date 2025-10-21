@@ -187,7 +187,7 @@ def _slack_term(m: pyo.ConcreteModel, params: Mapping[str, Any]) -> pyo.Expressi
 
 
 # ---------------------------------------------------------------------
-# Example constraint implementations
+# Constraint implementations
 # ---------------------------------------------------------------------
 
 @register_constraint("nutrition_utility_mapping")
@@ -365,12 +365,12 @@ def add_fairshare_cap_house(m: pyo.ConcreteModel, params: dict) -> None:
     Σ_i |x[i,h] - α·w[h]| ≤ β·w[h]·Σ_i S[i]
 
     Params (dict):
-        alpha: float — proportional share coefficient (0–1)
+        beta: float — proportional share coefficient (0–1)
     """
-    alpha = _get_dial_value(m, params, "alpha", default=0.7)
+    beta = _get_dial_value(m, params, "beta", default=0.7)
 
     def rule(model, h):
-        return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) <= alpha * model.fairshare_weight[h] * model.TotSupply
+        return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) <= beta * model.fairshare_weight[h] * model.TotSupply
 
     m.FairCapHouse = pyo.Constraint(m.H, rule=rule)
 
@@ -403,7 +403,8 @@ def add_deviation_household_cap(m: pyo.ConcreteModel, params: dict) -> None:
 
     def rule(model, h):
         beta = _get_dial_value(model, params, "beta", h)
-        return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) <= beta * model.TotSupply
+        fair_target = model.fairshare_weight[h] * model.TotSupply
+        return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) <= beta * fair_target
 
     m.DeviationHouseholdCap = pyo.Constraint(m.H, rule=rule)
 
@@ -414,7 +415,8 @@ def add_deviation_pair_cap(m: pyo.ConcreteModel, params: dict) -> None:
 
     def rule(model, i, h):
         rho = _get_dial_value(model, params, "rho", (i, h))
-        return model.dpos[i, h] + model.dneg[i, h] <= rho * model.Avail[i]
+        fair_target = model.fairshare_weight[h] * model.Avail[i]
+        return model.dpos[i, h] + model.dneg[i, h] <= rho * fair_target
 
     m.DeviationPairCap = pyo.Constraint(m.I, m.H, rule=rule)
 

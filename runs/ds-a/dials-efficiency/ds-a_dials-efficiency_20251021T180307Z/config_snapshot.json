@@ -1,0 +1,119 @@
+{
+  "version": "v2",
+  "status": "example",
+  "dataset": {
+    "id": "ds-a",
+    "path": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a"
+  },
+  "config": {
+    "id": "dials-efficiency",
+    "path": "C:\\Users\\Pol\\git\\fbdam\\configs\\dials-efficiency.yaml"
+  },
+  "data": {
+    "items": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\items.csv",
+    "items_csv": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\items.csv",
+    "nutrients": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\nutrients.csv",
+    "nutrients_csv": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\nutrients.csv",
+    "households": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\households.csv",
+    "households_csv": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\households.csv",
+    "requirements": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\requirements.csv",
+    "requirements_csv": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\requirements.csv",
+    "item_nutrients": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\item_nutrients.csv",
+    "item_nutrients_csv": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\item_nutrients.csv",
+    "bounds": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\household_item_bounds.csv",
+    "household_item_bounds": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\household_item_bounds.csv",
+    "household_item_bounds_csv": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\household_item_bounds.csv",
+    "params": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\params.yaml",
+    "params_yaml": "C:\\Users\\Pol\\git\\fbdam\\data\\ds-a\\params.yaml"
+  },
+  "model": {
+    "constraints": [
+      {
+        "id": "nutrition_utility_mapping",
+        "params": {}
+      },
+      {
+        "id": "item_supply_limit",
+        "params": {}
+      },
+      {
+        "id": "purchase_budget_limit",
+        "params": {}
+      },
+      {
+        "id": "household_adequacy_floor",
+        "params": {
+          "use_slack": false
+        }
+      },
+      {
+        "id": "nutrient_adequacy_floor",
+        "params": {
+          "use_slack": false
+        }
+      },
+      {
+        "id": "pairwise_adequacy_floor",
+        "params": {
+          "use_slack": false
+        }
+      },
+      {
+        "id": "fairshare_deviation_identity",
+        "params": {}
+      },
+      {
+        "id": "item_equity_aggregate_cap",
+        "params": {}
+      },
+      {
+        "id": "household_equity_aggregate_cap",
+        "params": {}
+      },
+      {
+        "id": "pairwise_equity_cap",
+        "params": {}
+      }
+    ],
+    "objectives": [
+      {
+        "id": "sum_utility",
+        "name": "sum_utility",
+        "sense": "maximize",
+        "params": {}
+      }
+    ]
+  },
+  "solver": {
+    "name": "appsi_highs",
+    "options": {
+      "time_limit": 5,
+      "mip_rel_gap": 0.05,
+      "log_to_console": false,
+      "log_file": "C:\\Users\\Pol\\git\\fbdam\\runs\\ds-a\\dials-efficiency\\ds-a_dials-efficiency_20251021T180307Z\\solver.log"
+    }
+  },
+  "model_params": {
+    "budget": 10,
+    "lambda": 1000,
+    "dials": {
+      "alpha": 0.9,
+      "beta": 0.9,
+      "rho": 0.9,
+      "gamma": 0.1,
+      "kappa": 0.1,
+      "omega": 0.1
+    },
+    "lambda_penalty": 1000
+  },
+  "metadata": {
+    "scenario_path": "C:\\Users\\Pol\\git\\fbdam\\scenarios\\ds-a_dials-efficiency.yaml",
+    "generated_at": "2025-10-21T18:03:07Z",
+    "run_id": "ds-a_dials-efficiency_20251021T180307Z",
+    "profile": {
+      "id": "time-limited",
+      "path": "C:\\Users\\Pol\\git\\fbdam\\profiles\\time-limited.yaml",
+      "description": "Short time limit for quick feedback runs."
+    }
+  }
+}

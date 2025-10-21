@@ -1,0 +1,23 @@
+dataset_id,ds-a,ds-a,ds-a,ds-a,ds-a,ds-a
+config_id,dials-efficiency,dials-balanced,dials-fairness,dials-adequacy,dials-fairness-adequacy,dials-gradual
+kpi,,,,,,
+Items,4.0,4.0,4.0,4.0,4.0,4.0
+Households,3.0,3.0,3.0,3.0,3.0,3.0
+Nutrients,3.0,3.0,3.0,3.0,3.0,3.0
+Objective value,6.74014,6.4125,5.95312,3.635,1.54,2.63
+Total allocation,61.0,61.0,58.0,61.0,56.0,60.0
+Avg allocation per pair,20.33333,20.33333,19.33333,20.33333,18.66667,20.0
+Undistributed,0.0,0.0,0.0,0.0,1.0,0.0
+Total cost,10.0,9.9,9.5,9.9,8.3,9.3
+Total nutritional utility,6.74014,6.4125,5.95312,3.635,1.54,2.63
+Global mean nutritional utility,0.7489,0.7125,0.66146,0.40389,0.17111,0.29222
+Min mean nutritional utility per household,0.58334,0.62788,0.62213,0.3635,0.154,0.263
+Min mean nutritional utility per nutrient,0.4127,0.36983,0.18867,0.3635,0.154,0.263
+Min overall nutritional utility,0.2075,0.35625,0.154,0.3635,0.154,0.263
+Global mean deviation from fair share,2.09259,1.14815,0.2037,0.2963,0.23148,0.11111
+Max mean deviation from fair share per household,3.13889,1.72222,0.25,0.38889,0.36111,0.16667
+Max mean deviation from fair share per food item,3.40741,2.74074,0.2963,0.44444,0.59259,0.22222
+Max overall deviation from fair share,5.11111,4.11111,0.44444,0.66667,0.88889,0.33333
+Max relative deviation from fair share per household,0.57377,0.32787,0.06897,0.19672,0.05263,0.1
+Max relative deviation from fair share per food item,0.16758,0.13479,0.01533,0.02186,0.03119,0.01111
+Max overall relative deviation from fair share,0.875,0.5,0.1,0.28571,0.1,0.25

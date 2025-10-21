@@ -17,6 +17,8 @@ model:
     - ref: pairwise_adequacy_floor
   objectives:
     - ref: sum_utility
+  model_params:
+    budget: 10
   dials:
     alpha: 0.9
     beta: 0.9

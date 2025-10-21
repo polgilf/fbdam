@@ -19,7 +19,10 @@ pytest tests/test_model_backbone.py
 pytest tests/test_smoke.py
 
 # Analysis
-python analysis/kpi_table.py --datasets ds-a --configs dials-efficiency dials-balanced dials-fairness dials-adequacy dials-fairness-adequacy --output "analysis/tables/kpis.csv"
+python analysis/kpi_table.py --datasets ds-a --configs dials-efficiency dials-balanced dials-fairness dials-adequacy dials-fairness-adequacy dials-gradual --output "analysis/tables/kpis.csv"
+
+python analysis/kpi_table.py --datasets ds-a --configs dials-efficiency dials-fairness dials-adequacy --output "analysis/tables/kpis.csv"
+
 
 # Plots
 # Total allocation of each household (barplot)

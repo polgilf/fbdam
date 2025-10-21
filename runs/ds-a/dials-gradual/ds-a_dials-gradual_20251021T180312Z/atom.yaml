@@ -1,0 +1,12 @@
+run_id: ds-a_dials-gradual_20251021T180312Z
+dataset_id: ds-a
+config_id: dials-gradual
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 2.63
+gap: 0.006226
+best_feasible_objective: 2.63
+best_objective_bound: 2.646374240257418
+elapsed_sec: 0.1241
+profile_id: time-limited

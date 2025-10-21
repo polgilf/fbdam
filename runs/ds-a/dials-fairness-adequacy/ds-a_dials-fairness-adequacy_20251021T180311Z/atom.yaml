@@ -1,0 +1,12 @@
+run_id: ds-a_dials-fairness-adequacy_20251021T180311Z
+dataset_id: ds-a
+config_id: dials-fairness-adequacy
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 1.5400000000000003
+gap: 0.0
+best_feasible_objective: 1.5400000000000003
+best_objective_bound: 1.5400000000000003
+elapsed_sec: 0.1221
+profile_id: time-limited

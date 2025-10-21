@@ -36,14 +36,14 @@ constraints:
   - id: household_adequacy_floor
     description: "Ensures avg utility per household ≥ omega_h × global mean (dial: omega_h)"
     params:
-      use_slack: auto
+      use_slack: False
 
   - id: nutrient_adequacy_floor
     description: "Ensures avg utility per nutrient ≥ gamma_n × global mean (dial: gamma_n)"
     params:
-      use_slack: auto
+      use_slack: False
 
   - id: pairwise_adequacy_floor
     description: "Ensures utility per (nutrient, household) ≥ kappa_nh × global mean (dial: kappa_nh)"
     params:
-      use_slack: auto
+      use_slack: False
