@@ -1,9 +1,15 @@
 version: v1
-name: Fairness and Adequacy
+name: Proportional & Adequate
+description: |
+  Policy emphasis: ALLOCATION EQUITY + NUTRITIONAL ADEQUACY
+
+  Tightens both proportional allocation caps and nutritional adequacy floors.
+  Useful for stress-testing scenarios where both dimensions are pushed close to
+  their theoretical limits.
 model:
   description: |
-    Base model with fairness and adequacy constraints. This configuration
-    keeps the structure fixed while balancing dials.
+    Base model with allocation equity and nutritional adequacy constraints.
+    Dials are configured to be strict in both dimensions.
   constraints:
     - ref: nutrition_utility_mapping
     - ref: item_supply_limit
@@ -18,9 +24,12 @@ model:
   objectives:
     - ref: sum_utility
   dials:
+    # Allocation equity dials (strict)
     alpha: 0.1
     beta: 0.1
-    gamma: 0.1
+    rho: 0.1
+
+    # Nutritional adequacy dials (strict)
+    gamma: 0.9
     kappa: 0.9
-    rho: 0.9
     omega: 0.9

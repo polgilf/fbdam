@@ -4,7 +4,7 @@
 version: v1.0
 notes: |
   Default dial configuration for demo scenarios that should behave like a
-  relaxed baseline. The large cap coefficients effectively disable fairness
+  relaxed baseline. The large cap coefficients effectively disable allocation equity
   limits while zero floors keep minimum thresholds inactive.
 budget: null
 lambda: 0.0

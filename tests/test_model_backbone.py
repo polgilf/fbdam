@@ -183,38 +183,44 @@ def test_backbone_components_evaluate() -> None:
     assert item_cap_body == pytest.approx(lhs_item - expected_item_rhs)
 
     household_cap = model.DeviationHouseholdCap[household]
-    expected_household_rhs = cfg["model_params"]["dials"]["beta"] * total_supply
+    expected_household_rhs = (
+        cfg["model_params"]["dials"]["beta"]
+        * model.fairshare_weight[household]
+        * total_supply
+    )
     household_cap_body = pyo.value(household_cap.body)
     lhs_household = sum(model.dpos[i, household].value + model.dneg[i, household].value for i in model.I)
     assert household_cap_body == pytest.approx(lhs_household - expected_household_rhs)
 
     pair_cap = model.DeviationPairCap[item, household]
-    gamma = cfg["model_params"]["dials"]["gamma"]
+    rho_pair = cfg["model_params"]["dials"]["rho"]
     pair_cap_body = pyo.value(pair_cap.body)
     lhs_pair = model.dpos[item, household].value + model.dneg[item, household].value
-    assert pair_cap_body == pytest.approx(lhs_pair - gamma * avail_value)
+    assert pair_cap_body == pytest.approx(
+        lhs_pair - rho_pair * model.fairshare_weight[household] * avail_value
+    )
 
     hh_floor = model.HouseholdFloor[household]
-    rho = cfg["model_params"]["dials"]["rho"]
+    omega_h = cfg["model_params"]["dials"]["omega"]
     hh_mean = pyo.value(model.household_mean_utility[household])
     body_hh = pyo.value(hh_floor.body)
     assert body_hh == pytest.approx(
-        -model.epsilon.value - (hh_mean - rho * global_mean)
+        -model.epsilon.value - (hh_mean - omega_h * global_mean)
     )
 
     nutrient_floor = model.NutrientFloor[nutrient]
-    kappa = cfg["model_params"]["dials"]["kappa"]
+    gamma_n = cfg["model_params"]["dials"]["gamma"]
     nutrient_mean = pyo.value(model.nutrient_mean_utility[nutrient])
     body_nutrient = pyo.value(nutrient_floor.body)
     assert body_nutrient == pytest.approx(
-        -model.epsilon.value - (nutrient_mean - kappa * global_mean)
+        -model.epsilon.value - (nutrient_mean - gamma_n * global_mean)
     )
 
     pair_floor = model.PairFloor[nutrient, household]
-    omega = cfg["model_params"]["dials"]["omega"]
+    kappa_pair = cfg["model_params"]["dials"]["kappa"]
     pair_body = pyo.value(pair_floor.body)
     assert pair_body == pytest.approx(
-        -model.epsilon.value - (model.u[nutrient, household].value - omega * global_mean)
+        -model.epsilon.value - (model.u[nutrient, household].value - kappa_pair * global_mean)
     )
 
 
@@ -308,15 +314,15 @@ def test_slack_active_when_lambda_zero() -> None:
 
     hh_mean = pyo.value(model.household_mean_utility[household])
     global_mean = pyo.value(model.global_mean_utility)
-    rho = cfg["model_params"]["dials"]["rho"]
+    omega_h = cfg["model_params"]["dials"]["omega"]
     body = pyo.value(model.HouseholdFloor[household].body)
 
-    expected = -model.epsilon.value - (hh_mean - rho * global_mean)
+    expected = -model.epsilon.value - (hh_mean - omega_h * global_mean)
     assert body == pytest.approx(expected)
 
     pair_body = pyo.value(model.PairFloor[nutrient, household].body)
-    omega = cfg["model_params"]["dials"]["omega"]
+    kappa_pair = cfg["model_params"]["dials"]["kappa"]
     expected_pair = -model.epsilon.value - (
-        model.u[nutrient, household].value - omega * global_mean
+        model.u[nutrient, household].value - kappa_pair * global_mean
     )
     assert pair_body == pytest.approx(expected_pair)

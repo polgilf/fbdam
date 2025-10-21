@@ -15,27 +15,39 @@ kpis:
     label: Undistributed
   - id: supply.total_cost
     label: Total cost
-  - id: utility.total_nutritional_utility
+  - id: nutrition.total_nutritional_utility
     label: Total nutritional utility
-  - id: utility.global_mean_utility
+  - id: nutrition.global_mean_utility
     label: Global mean nutritional utility
-  - id: utility.min_mean_utility_per_household
+  - id: nutrition.min_household_mean_utility
     label: Min mean nutritional utility per household
-  - id: utility.min_mean_utility_per_nutrient
+  - id: nutrition.min_nutrient_mean_utility
     label: Min mean nutritional utility per nutrient
-  - id: utility.min_overall_utility
+  - id: nutrition.min_pairwise_utility
     label: Min overall nutritional utility
-  - id: fairness.global_mean_deviation_from_fair_share
+  - id: allocation_equity.global_mean_deviation_from_fairshare
     label: Global mean deviation from fair share
-  - id: fairness.max_mean_deviation_from_fair_share_per_household
+  - id: allocation_equity.max_household_mean_deviation
     label: Max mean deviation from fair share per household
-  - id: fairness.max_mean_deviation_from_fair_share_per_food_item
+  - id: allocation_equity.max_item_mean_deviation
     label: Max mean deviation from fair share per food item
-  - id: fairness.max_overall_deviation_from_fair_share
+  - id: allocation_equity.max_pairwise_deviation
     label: Max overall deviation from fair share
-  - id: fairness.max_relative_deviation_from_fair_share_per_household
+  - id: allocation_equity.max_household_relative_deviation
     label: Max relative deviation from fair share per household
-  - id: fairness.max_relative_deviation_from_fair_share_per_food_item
+  - id: allocation_equity.max_item_relative_deviation
     label: Max relative deviation from fair share per food item
-  - id: fairness.max_relative_deviation_from_fair_share_per_pair
+  - id: allocation_equity.max_pairwise_relative_deviation
     label: Max overall relative deviation from fair share
+  - id: nutritional_adequacy.min_household_mean_utility
+    label: Min household mean utility (adequacy)
+  - id: nutritional_adequacy.min_nutrient_mean_utility
+    label: Min nutrient mean utility (adequacy)
+  - id: nutritional_adequacy.min_pairwise_utility
+    label: Min nutrient-household utility (adequacy)
+  - id: nutritional_adequacy.household_adequacy_gap
+    label: Household adequacy gap (relative to mean)
+  - id: nutritional_adequacy.nutrient_adequacy_gap
+    label: Nutrient adequacy gap (relative to mean)
+  - id: nutritional_adequacy.pairwise_adequacy_gap
+    label: Pairwise adequacy gap (relative to mean)

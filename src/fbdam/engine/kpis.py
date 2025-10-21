@@ -16,6 +16,13 @@ def compute_kpis(
 ) -> Dict[str, Any]:
     """Compute KPI aggregates from a solved model.
 
+    KPIs are organised into five categories:
+    - basic: model dimensions and objective value
+    - supply: physical allocation totals
+    - nutrition: aggregate nutritional outcomes
+    - allocation_equity: deviations from proportional fair-share
+    - nutritional_adequacy: compliance with minimum utility floors
+
     For infeasible solves a minimal structure is returned so that reporting
     remains functional without evaluating undefined Pyomo expressions.
     """
@@ -48,41 +55,65 @@ def compute_kpis(
         "total_cost": _safe_value(model.TotalCost),
     }
 
-    metrics["utility"] = {
-        "total_nutritional_utility": _safe_value(model.total_nutritional_utility),
-        "global_mean_utility": _safe_value(model.global_mean_utility),
-        "min_mean_utility_per_household": _safe_min(
-            _safe_value(model.household_mean_utility[h]) for h in model.H
+    total_utility = _safe_value(model.total_nutritional_utility)
+    global_mean = _safe_value(model.global_mean_utility)
+    min_household_mean = _safe_min(
+        _safe_value(model.household_mean_utility[h]) for h in model.H
+    )
+    min_nutrient_mean = _safe_min(
+        _safe_value(model.nutrient_mean_utility[n]) for n in model.N
+    )
+    min_pairwise_utility = _safe_min(
+        _safe_value(model.u[n, h]) for n in model.N for h in model.H
+    )
+
+    metrics["nutrition"] = {
+        "total_nutritional_utility": total_utility,
+        "global_mean_utility": global_mean,
+        "min_household_mean_utility": min_household_mean,
+        "min_nutrient_mean_utility": min_nutrient_mean,
+        "min_pairwise_utility": min_pairwise_utility,
+    }
+
+    metrics["allocation_equity"] = {
+        "global_mean_deviation_from_fairshare": _safe_value(model.global_mean_deviation_from_fairshare),
+        "max_household_mean_deviation": _safe_max(
+            _safe_value(model.household_mean_deviation_from_fairshare[h]) for h in model.H
         ),
-        "min_mean_utility_per_nutrient": _safe_min(
-            _safe_value(model.nutrient_mean_utility[n]) for n in model.N
+        "max_item_mean_deviation": _safe_max(
+            _safe_value(model.item_mean_deviation_from_fairshare[i]) for i in model.I
         ),
-        "min_overall_utility": _safe_min(
-            _safe_value(model.u[n, h]) for n in model.N for h in model.H
+        "max_pairwise_deviation": _safe_max(
+            _safe_value(model.dpos[i, h] + model.dneg[i, h]) for i in model.I for h in model.H
+        ),
+        "max_household_relative_deviation": _safe_max(
+            _safe_value(model.household_mean_relative_deviation_from_fair_share[h]) for h in model.H
+        ),
+        "max_item_relative_deviation": _safe_max(
+            _safe_value(model.item_mean_relative_deviation_from_fair_share[i]) for i in model.I
+        ),
+        "max_pairwise_relative_deviation": _safe_max(
+            _safe_value(model.pair_relative_deviation_from_fair_share[i, h]) for i in model.I for h in model.H
         ),
     }
 
-    metrics["fairness"] = {
-        "global_mean_deviation_from_fair_share": _safe_value(model.global_mean_deviation_from_fairshare),
-        "max_mean_deviation_from_fair_share_per_household": _safe_max(
-            _safe_value(model.household_mean_deviation_from_fairshare[h]) for h in model.H
-        ),
-        "max_mean_deviation_from_fair_share_per_food_item": _safe_max(
-            _safe_value(model.item_mean_deviation_from_fairshare[i]) for i in model.I
-        ),
-        "max_overall_deviation_from_fair_share": _safe_max(
-            _safe_value(model.dpos[i, h] + model.dneg[i, h]) for i in model.I for h in model.H
-        ),
-        "max_relative_deviation_from_fair_share_per_household": _safe_max(
-            _safe_value(model.household_mean_relative_deviation_from_fair_share[h]) for h in model.H
-        ),
-        "max_relative_deviation_from_fair_share_per_food_item": _safe_max(
-            _safe_value(model.item_mean_relative_deviation_from_fair_share[i]) for i in model.I
-        ),
-        "max_relative_deviation_from_fair_share_per_pair": _safe_max(
-            _safe_value(model.pair_relative_deviation_from_fair_share[i, h]) for i in model.I for h in model.H
-        ),        
+    metrics["nutritional_adequacy"] = {
+        "min_household_mean_utility": min_household_mean,
+        "min_nutrient_mean_utility": min_nutrient_mean,
+        "min_pairwise_utility": min_pairwise_utility,
     }
+
+    if global_mean is not None and global_mean > 0:
+        adequacy = metrics["nutritional_adequacy"]
+        min_vals = {
+            "household_adequacy_gap": adequacy["min_household_mean_utility"],
+            "nutrient_adequacy_gap": adequacy["min_nutrient_mean_utility"],
+            "pairwise_adequacy_gap": adequacy["min_pairwise_utility"],
+        }
+        for key, value in min_vals.items():
+            adequacy[key] = (
+                (global_mean - value) / global_mean if value is not None else None
+            )
 
     for category in metrics.values():
         for key, value in list(category.items()):

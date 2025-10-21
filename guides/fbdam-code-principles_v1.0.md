@@ -241,7 +241,7 @@ Artifacts per run (machine + human):
 
 - `manifest.json` — solver, config versions, seed, start/end time, objective, gap, counts.
 - `solver_report.json` — detailed solver metrics.
-- `kpis.json` — fairness, adequacy, costs, purchase totals, outliers.
+- `kpis.json` — allocation equity, nutritional adequacy, costs, purchase totals, outliers.
 - `variables.parquet` — wide table with `(i,h,n)` coordinates as needed.
 - `report.md` — short narrative with dials, anomalies, and next actions.
 

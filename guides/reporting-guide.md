@@ -137,7 +137,7 @@ dfc = pd.read_csv(path) if path.exists() else None
 
 ## 6) KPIs best practices
 
-- Keep names **stable** and **flat** (e.g., `tnu`, `u_min`, `u_mean`, `fairness_L1_house`, `cost_total`).  
+- Keep names **stable** and **flat** (e.g., `tnu`, `nutrition.min_pairwise_utility`, `allocation_equity.max_household_mean_deviation`, `cost_total`).
 - Prefer numeric types; avoid strings except for labels.  
 - Record the **units** in a sidecar doc if needed (or the KPI YAML catalog).
 

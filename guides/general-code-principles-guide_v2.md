@@ -120,7 +120,7 @@ Each execution yields a structured manifest:
 
 ### 4.2 Reporting Discipline
 - **Machine report:** JSON/NDJSON of all metrics.
-- **Human report:** Markdown summary (KPIs, fairness, anomalies).
+- **Human report:** Markdown summary (KPIs, allocation equity, nutritional adequacy, anomalies).
 - Bundle manifest, logs, KPIs, and artifacts → `/outputs/runs/{run_id}/`.
 
 ### 4.3 Error Handling
@@ -170,10 +170,10 @@ A change is done when:
 
 ## 6. Lightweight ADR Template
 ```markdown
-**Title:** Add fairness floor constraint
-**Context:** Distribution equity must exceed baseline.
-**Decision:** Introduce \(u_{n,h} \geq \rho_h \cdot \text{mean}(u_{n,h})\)
-**Why:** Increases nutritional fairness consistency.
+**Title:** Add nutritional adequacy floor constraint
+**Context:** Outcome equity must exceed baseline sufficiency.
+**Decision:** Introduce \(u_{n,h} \geq \omega_{n,h} \cdot \bar{u}_{\text{global}}\)
+**Why:** Increases nutritional adequacy consistency.
 **Implications:** Update constraint catalog + tests.
 **Links:** PR #42, prompt-log 2025-10-19
 ```

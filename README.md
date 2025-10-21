@@ -1,9 +1,17 @@
 # FBDAM — Food Basket Design and Allocation Model
 
-FBDAM is a minimal yet production-ready optimization pipeline for designing and
-allocating food baskets. It combines Pyomo models, YAML-driven configuration,
-and a Typer CLI so teams can run end-to-end allocation studies with repeatable
-inputs and automatically generated reports.
+FBDAM is a configurable MILP framework for equitable and nutritious food
+distribution. It balances three objectives:
+
+- **Efficiency** – maximize total nutritional utility
+- **Allocation Equity** – enforce proportional fair-share distribution (α, β, ρ)
+- **Nutritional Adequacy** – guarantee minimum nutrition for all (γ, κ, ω)
+
+Six dial parameters control the trade-off between these objectives, allowing
+practitioners to explore scenarios ranging from strict proportional allocation
+to strict nutritional sufficiency. The framework combines Pyomo models,
+YAML-driven configuration, and a Typer CLI so teams can run end-to-end
+allocation studies with repeatable inputs and automatically generated reports.
 
 ## Key capabilities
 
@@ -71,12 +79,14 @@ After installation, the `fbdam` console script is available on your PATH.
      household_item_bounds_csv: data/demo/household_item_bounds.csv
    model:
      dials:
-       alpha: 0.25
-       beta: 0.15
-       gamma: 0.20
-       kappa: 0.10
-       rho: 0.30
-       omega: 0.05
+      # Allocation equity dials (proportional distribution)
+      alpha: 0.25
+      beta: 0.15
+      rho: 0.30
+      # Nutritional adequacy dials (minimum outcomes)
+      gamma: 0.20
+      kappa: 0.10
+      omega: 0.05
      budget: 1500
      lambda: 0.8
     constraints:
@@ -116,8 +126,8 @@ fair_share[h] = members[h] / sum_k members[k]
 ```
 
 Both the raw `members` count and the derived `fair_share` weight are made
-available to downstream components, so additional fairness scaling in configs or
-CSV files is no longer required.
+available to downstream components, so additional allocation equity scaling in
+configs or CSV files is no longer required.
 
 ## Handling infeasible solutions
 
@@ -138,7 +148,7 @@ run that exercises the new diagnostics.
 
 The repository also ships with `scenarios/demo-tnu.yaml`, an end-to-end baseline
 that loads every CSV under `data/demo/` plus the dial configuration in
-`data/demo/params.yaml`. The parameter file relaxes every fairness dial and
+`data/demo/params.yaml`. The parameter file relaxes every allocation equity dial and
 sets the budget and lambda penalty to zero, so the run focuses solely on
 maximizing total nutrient utility (TNU).
 
