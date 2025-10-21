@@ -174,7 +174,12 @@ def _should_use_slack(m: pyo.ConcreteModel, params: Mapping[str, Any]) -> bool:
     if flag is not None:
         return bool(flag)
     lam_value = _get_lambda_value(_get_model_params(m))
-    return lam_value is not None and lam_value > 0
+    if lam_value is not None:
+        # Specification alignment: providing lambda (even 0) should enable the
+        # shared slack variable so that λ = 0 yields the diagnostic regime
+        # described in the mathematical model.
+        return True
+    return False
 
 
 def _slack_term(m: pyo.ConcreteModel, params: Mapping[str, Any]) -> pyo.Expression | float:
