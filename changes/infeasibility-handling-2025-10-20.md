@@ -360,7 +360,7 @@ If `is_feasible` is False, immediately return a minimal KPI structure:
 * Still include item/household/nutrient counts (safe to extract)
 * Set `objective_value` to `None`
 * Add a new field `feasibility_status: "INFEASIBLE"` for clarity
-* Do NOT attempt to compute utility, supply, or fairness metrics
+* Do NOT attempt to compute utility, supply, or allocation equity metrics
 
 #### Change 4.3: Ensure Safe Evaluation for Feasible Cases
 
@@ -400,7 +400,7 @@ Create a new test scenario YAML file with impossible constraints:
 
 **Scenario characteristics:**
 
-* Set `alpha` and `beta` to 0.0 (perfect fairness impossible with unequal households)
+* Set `alpha` and `beta` to 0.0 (perfect allocation equity impossible with unequal households)
 * Set `rho` and `kappa` to 1.0 (all households must equal global mean - contradictory)
 * Set budget very low (insufficient to buy necessary items)
 

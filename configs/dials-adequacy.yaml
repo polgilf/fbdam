@@ -1,9 +1,18 @@
 version: v1
-name: Adequacy
+name: Adequacy (Nutritional Floor)
+description: |
+  Policy emphasis: NUTRITIONAL ADEQUACY
+
+  Prioritises minimum nutritional outcomes for all households and nutrients.
+  Allocation may deviate substantially from fair-share proportions to ensure
+  everyone meets basic nutrition thresholds.
+
+  Use case: When preventing malnutrition is paramount, even if some households
+  receive more or less than their proportional share.
 model:
   description: |
-    Base model with fairness and adequacy constraints. This configuration
-    keeps the structure fixed while balancing dials.
+    Base model with allocation equity and nutritional adequacy constraints.
+    Dials are tuned to prioritise nutritional adequacy floors.
   constraints:
     - ref: nutrition_utility_mapping
     - ref: item_supply_limit
@@ -20,9 +29,12 @@ model:
   model_params:
     budget: 10
   dials:
+    # Allocation equity dials (relaxed)
     alpha: 0.9
     beta: 0.9
+    rho: 0.9
+
+    # Nutritional adequacy dials (strict)
     gamma: 0.9
     kappa: 0.9
-    rho: 0.9
     omega: 0.9

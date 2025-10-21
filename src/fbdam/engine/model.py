@@ -17,7 +17,7 @@ Notes:
 - Nutrient delivery q[n,h] is an Expression from x[i,h] and item nutrient content.
 - Utility u[n,h] is a variable bounded in [0, 1]; keep it clean and let constraints
   (e.g., u_link) define the linkage.
-- We predefine deviation variables (dpos/dneg) frequently used by fairness caps.
+- We predefine deviation variables (dpos/dneg) frequently used by allocation equity caps.
 - 'household_adequacy_floor' plugins expect mean and global mean utility expressions.
 
 This builder does NOT read files. All I/O/validation should happen in io.py.
@@ -299,7 +299,7 @@ def _build_variables(
         for var in m.y_active.values():
             var.fix(0)
 
-    # Optional deviation variables used by fairness constraints (kept generic)
+    # Optional deviation variables used by allocation equity constraints (kept generic)
     m.dpos = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Positive deviation helper")
     m.dneg = pyo.Var(m.I, m.H, domain=pyo.NonNegativeReals, doc="Negative deviation helper")
 
@@ -365,16 +365,20 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
 
 
     # ------------------------------------------------------------
-    # Nutritional utility expressions
-    # ------------------------------------------------------------
+    # ═══════════════════════════════════════════════════════════════
+    # NUTRITIONAL ADEQUACY EXPRESSIONS
+    # ───────────────────────────────────────────────────────────────
+    # Capture utility outcomes used by adequacy floors (γ, κ, ω) to
+    # enforce minimum nutrition thresholds.
+    # ═══════════════════════════════════════════════════════════════
 
-    # Total nutritional utility: sum_{n,h} u[n,h]
+    # NUTRITIONAL ADEQUACY: total nutritional utility (Σ u[n,h])
     def _total_utility_expr(model):
         return sum(model.u[n, h] for n in model.N for h in model.H)
     m.total_nutritional_utility = pyo.Expression(rule=_total_utility_expr, doc="Aggregate nutritional utility")
 
 
-    # Household mean utility: mean over nutrients
+    # NUTRITIONAL ADEQUACY: household mean utility (ȳ_h)
     def _mean_u_household(model, h):
         return (1.0 / model.cardN) * sum(model.u[n, h] for n in model.N)
     if len(m.N) == 0:
@@ -383,7 +387,7 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
         m.household_mean_utility = pyo.Expression(m.H, rule=_mean_u_household)
 
 
-    # Nutrient mean utility: mean over households
+    # NUTRITIONAL ADEQUACY: nutrient mean utility (ȳ_n)
     def _mean_u_nutrient(model, n):
         return (1.0 / model.cardH) * sum(model.u[n, h] for h in model.H)
     if len(m.H) == 0:
@@ -392,7 +396,7 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
         m.nutrient_mean_utility = pyo.Expression(m.N, rule=_mean_u_nutrient)
 
 
-    # Global mean utility: mean over households of household mean utility
+    # NUTRITIONAL ADEQUACY: global mean utility baseline (ū_global)
     def _global_mean(model):
         if len(model.N) == 0 or len(model.H) == 0:
             return 0.0
@@ -402,11 +406,14 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
     )
 
 
-    # ------------------------------------------------------------
-    # Deviation from fair share expressions
-    # ------------------------------------------------------------
+    # ═══════════════════════════════════════════════════════════════
+    # ALLOCATION EQUITY EXPRESSIONS
+    # ───────────────────────────────────────────────────────────────
+    # Quantify proportional deviation metrics controlled by allocation
+    # equity caps (α, β, ρ).
+    # ═══════════════════════════════════════════════════════════════
 
-    # Total deviation from fair share: sum_{i,h} (dpos[i,h] + dneg[i,h])
+    # ALLOCATION EQUITY: total deviation from fair-share (Σ δ)
     def _total_deviation_expr(model):
         return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I for h in model.H)
     m.total_deviation_from_fairshare = pyo.Expression(rule=_total_deviation_expr)
@@ -415,19 +422,19 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
     # Absolute deviation expressions
     # ----------------------------
 
-    # Item mean absolute deviation from fair share: mean over households
+    # ALLOCATION EQUITY: item mean absolute deviation (materialised α)
     def _mean_deviation_item(model, i):
         return (1.0 / model.cardH) * sum(model.dpos[i, h] + model.dneg[i, h] for h in model.H)
     m.item_mean_deviation_from_fairshare = pyo.Expression(m.I, rule=_mean_deviation_item)
 
 
-    # Household mean absolute deviation from fair share: mean over nutrients
+    # ALLOCATION EQUITY: household mean absolute deviation (materialised β)
     def _mean_deviation_household(model, h):
         return (1.0 / model.cardI) * sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I)
     m.household_mean_deviation_from_fairshare = pyo.Expression(m.H, rule=_mean_deviation_household)
-    
-    
-    # Global mean absolute deviation from fair share: mean over all nutrient-household pairs
+
+
+    # ALLOCATION EQUITY: global mean absolute deviation from fair-share
     def _global_mean_deviation(model):
         if len(model.I) == 0 or len(model.H) == 0:
             return 0.0
@@ -438,26 +445,27 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
     # Relative deviation expressions
     # ----------------------------
 
-    # Item mean relative deviation from fair share: mean over households ("materialized alpha")
+    # ALLOCATION EQUITY: item mean relative deviation (materialised α)
     def _relative_deviation_from_fair_share_item(model, i):
         total_item_deviation = sum(model.dpos[i, h] + model.dneg[i, h] for h in model.H) # sum over households for item i
         total_available = sum(model.Avail[i] for i in model.I)
         return total_item_deviation / total_available
     m.item_mean_relative_deviation_from_fair_share = pyo.Expression(m.I, rule=_relative_deviation_from_fair_share_item)
 
-    # Household mean relative deviation from fair share: mean over nutrients ("materialized beta")
+    # ALLOCATION EQUITY: household mean relative deviation (materialised β)
     def _relative_deviation_from_fair_share_household(model, h):
         total_household_deviation = sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) # sum over items for household h
         fair_target = sum(model.fairshare_weight[h] * model.Avail[i] for i in model.I)
         return total_household_deviation / fair_target
     m.household_mean_relative_deviation_from_fair_share = pyo.Expression(m.H, rule=_relative_deviation_from_fair_share_household)
 
-    # Individual pair relative deviation from fair share ("materialized rho")
+    # ALLOCATION EQUITY: pairwise relative deviation (materialised ρ)
     def _relative_deviation_from_fair_share_pair(model, i, h):
         total_pair_deviation = model.dpos[i, h] + model.dneg[i, h]
         fair_target = model.fairshare_weight[h] * model.Avail[i]
         return total_pair_deviation / fair_target
     m.pair_relative_deviation_from_fair_share = pyo.Expression(m.I, m.H, rule=_relative_deviation_from_fair_share_pair)
+
         
 # ------------------------------------------------------------
 # Apply plugins (constraints & objective)

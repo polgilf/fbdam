@@ -1,5 +1,5 @@
 budget: 10
-lambda: 1000
+lambda: 0
 dials:
   alpha: 999
   beta: 999

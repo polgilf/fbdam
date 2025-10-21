@@ -1,9 +1,15 @@
 version: v1
-name: Balanced
+name: Gradual Tightening
+description: |
+  Policy emphasis: TRANSITION
+
+  Mixed dial setting that keeps allocation equity strict while gradually
+  tightening nutritional adequacy floors. Useful for sensitivity analysis.
 model:
   description: |
-    Base model with fairness and adequacy constraints. This configuration
-    keeps the structure fixed while balancing dials.
+    Base model with allocation equity and nutritional adequacy constraints.
+    Dials progressively tighten adequacy while maintaining strict proportional
+    allocation caps.
   constraints:
     - ref: nutrition_utility_mapping
     - ref: item_supply_limit
@@ -18,9 +24,12 @@ model:
   objectives:
     - ref: sum_utility
   dials:
+    # Allocation equity dials (strict/medium)
     alpha: 0.1
     beta: 0.1
-    gamma: 0.5
-    kappa: 0.9
     rho: 0.5
+
+    # Nutritional adequacy dials (tight)
+    gamma: 0.9
+    kappa: 0.9
     omega: 0.9

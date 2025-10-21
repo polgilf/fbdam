@@ -1,9 +1,15 @@
 version: v1
-name: Balanced
+name: Balanced (Equity-Adequacy Trade-off)
+description: |
+  Policy emphasis: BALANCED
+
+  Balances allocation equity (proportional distribution) with nutritional
+  adequacy (minimum outcomes). Represents a middle-ground policy that considers
+  both fair distribution and adequate nutrition.
 model:
   description: |
-    Base model with fairness and adequacy constraints. This configuration
-    keeps the structure fixed while balancing dials.
+    Base model with allocation equity and nutritional adequacy constraints.
+    Dials are set to moderate values to balance both dimensions.
   constraints:
     - ref: nutrition_utility_mapping
     - ref: item_supply_limit
@@ -18,9 +24,12 @@ model:
   objectives:
     - ref: sum_utility
   dials:
+    # Allocation equity dials (balanced)
     alpha: 0.5
     beta: 0.5
+    rho: 0.5
+
+    # Nutritional adequacy dials (balanced)
     gamma: 0.5
     kappa: 0.5
-    rho: 0.5
     omega: 0.5

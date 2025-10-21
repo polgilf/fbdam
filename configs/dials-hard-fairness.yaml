@@ -1,11 +1,17 @@
 version: v1
-name: Hard Fairness
+name: Hard Allocation Equity
+description: |
+  Policy emphasis: STRICT ALLOCATION EQUITY
+
+  Enforces very tight proportional allocation caps while keeping adequacy floors
+  active via slack. Use when proportional treatment is non-negotiable.
 model:
   params:
     lambda: 0.1
   description: |
-    Base model with fairness and adequacy constraints. This configuration
-    keeps the structure fixed while balancing dials.
+    Base model with allocation equity and nutritional adequacy constraints.
+    Allocation equity caps are strict; adequacy floors use slack to remain
+    feasible under extreme proportionality requirements.
   constraints:
     - ref: nutrition_utility_mapping
     - ref: item_supply_limit
@@ -26,9 +32,12 @@ model:
   objectives:
     - ref: sum_utility
   dials:
+    # Allocation equity dials (strict)
     alpha: 0.2
     beta: 0.2
-    gamma: 0.2
+    rho: 0.2
+
+    # Nutritional adequacy dials (strict, enforced with slack)
+    gamma: 1
     kappa: 1
-    rho: 1
     omega: 1

@@ -186,22 +186,31 @@ def _slack_term(m: pyo.ConcreteModel, params: Mapping[str, Any]) -> pyo.Expressi
     return m.epsilon if _should_use_slack(m, params) else 0.0
 
 
-# ---------------------------------------------------------------------
-# Constraint implementations
-# ---------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════
+# CORE MECHANICS CONSTRAINTS
+# ───────────────────────────────────────────────────────────────────
+# Structural relationships that ground the model: utility normalisation,
+# supply conservation, and budget linkage. They enable the equity and
+# adequacy mechanisms but are not dial-controlled themselves.
+# ═══════════════════════════════════════════════════════════════════
 
 @register_constraint("nutrition_utility_mapping")
 def add_u_link(m: pyo.ConcreteModel, params: dict) -> None:
     """
-    nutrition_utility_mapping — Utility linkage constraint
-    -----------------------------------
-    Links household-nutrient utility with delivered quantity and requirement.
+    CORE MECHANICS: Nutritional utility upper bound
+    ───────────────────────────────────────────────
+    Links normalised household–nutrient utility to delivered quantity and
+    requirement levels so that utility cannot exceed the achievable ratio.
 
     Mathematical form:
-        u[n,h] <= q[n,h] / R[h,n]     ∀ n ∈ N, h ∈ H
+        u[n,h] ≤ q[n,h] / R[h,n]     ∀ n ∈ N, h ∈ H
 
-    Params (dict):
-        none
+    Dial parameter:
+        None (structural constraint without a policy dial).
+
+    Promotes:
+        Consistent normalisation between allocation decisions and utility
+        outcomes, ensuring comparability across constraints.
     """
     def rule(m, n, h):
         return m.u[n, h] <= m.q[n, h] / m.R[h, n]
@@ -212,10 +221,20 @@ def add_u_link(m: pyo.ConcreteModel, params: dict) -> None:
 @register_constraint("item_supply_limit")
 def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
     """
-    Ensure allocations of each item do not exceed available supply.
-    
+    CORE MECHANICS: Item supply conservation
+    ────────────────────────────────────────
+    Prevents total allocations of each item from exceeding the available
+    quantity (donated stock plus purchases), preserving feasibility of the
+    distribution plan.
+
     Mathematical form:
         Σ_h x[i,h] ≤ Avail[i]     ∀ i ∈ I
+
+    Dial parameter:
+        None (structural constraint without a policy dial).
+
+    Promotes:
+        Feasible allocation plans that respect physical supply limits.
     """
 
     def rule(model, i):
@@ -226,19 +245,24 @@ def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
 
 @register_constraint("purchase_budget_limit")
 def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
-    """Limit total purchases by the available monetary budget.
+    """
+    CORE MECHANICS: Purchase budget enforcement
+    ───────────────────────────────────────────
+    Couples purchase decisions with the available monetary budget. Ensures
+    purchased quantities respect budget limits, activate only when needed,
+    and avoid waste when procurement occurs.
 
-    This constraint creates three sub-constraints:
-    1. **Budget limit** – total purchase cost cannot exceed the budget.
-    2. **Purchase activation** – links the continuous purchase quantity ``y[i]``
-       to the binary activation variable ``y_active[i]`` via a classic big-M
-       formulation.
-    3. **No waste** – if purchasing is activated, all available units (donated
-       stock plus purchases) must be allocated; otherwise up to the donated
-       stock may remain unused.
+    Mathematical form:
+        1. Σ_i cost[i] · y[i] ≤ budget
+        2. y[i] ≤ M[i] · y_active[i]     ∀ i ∈ I
+        3. Avail[i] - Σ_h x[i,h] ≤ S[i] · (1 - y_active[i])     ∀ i ∈ I
 
-    The "no waste" requirement prevents wasting scarce budget resources on
-    items that are not ultimately distributed.
+    Dial parameter:
+        budget: Monetary budget available for purchases (scalar parameter).
+
+    Promotes:
+        Efficient use of procurement funds by linking spending to distribution
+        outcomes and preventing unnecessary purchases.
     """
 
     budget = params.get("budget") if isinstance(params, Mapping) else None
@@ -299,85 +323,34 @@ def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
     m.PurchaseNoWaste = pyo.Constraint(m.I, rule=_no_waste_rule)
 
 
-@register_constraint("household_adequacy_floor")
-def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
-    """
-    household_adequacy_floor — Household minimum utility
-    -------------------------------------------
-    Implements  \bar u_h - rho_h * \bar u_all >= -epsilon.
-
-    Params (dict):
-        rho: Optional scalar or mapping per household. Defaults to the
-              scenario dial if defined, otherwise 0.0.
-        use_slack: bool | "auto" — whether to include epsilon on the RHS.
-    """
-
-    '''
-    Mathematical form:
-        \bar u_h - rho_h * \bar u_all >= -epsilon     ∀ h ∈ H
-    '''
-    slack = _slack_term(m, params)
-
-    def rule(model, h):
-        rho = _get_dial_value(model, params, "rho", h, default=0.0)
-        return model.household_mean_utility[h] - rho * model.global_mean_utility >= -slack
-
-    m.HouseholdFloor = pyo.Constraint(m.H, rule=rule)
-
-
-@register_constraint("nutrient_adequacy_floor")
-def add_nutrient_floor(m: pyo.ConcreteModel, params: dict) -> None:
-    """nutrient_adequacy_floor — Implements \bar u_n - kappa_n * \bar u_all >= -epsilon."""
-
-    '''
-    Mathematical form:
-        \bar u_n - kappa_n * \bar u_all >= -epsilon     ∀ n ∈ N
-    '''
-    slack = _slack_term(m, params)
-
-    def rule(model, n):
-        kappa = _get_dial_value(model, params, "kappa", n, default=0.0)
-        return model.nutrient_mean_utility[n] - kappa * model.global_mean_utility >= -slack
-
-    m.NutrientFloor = pyo.Constraint(m.N, rule=rule)
-
-
-@register_constraint("pairwise_adequacy_floor")
-def add_pair_floor(m: pyo.ConcreteModel, params: dict) -> None:
-    """pairwise_adequacy_floor — Implements u[n,h] - omega_{n,h} * \bar u_all >= -epsilon."""
-
-    slack = _slack_term(m, params)
-
-    def rule(model, n, h):
-        omega = _get_dial_value(model, params, "omega", (n, h), default=0.0)
-        return model.u[n, h] - omega * model.global_mean_utility >= -slack
-
-    m.PairFloor = pyo.Constraint(m.N, m.H, rule=rule)
-
-
-@register_constraint("fairshare_cap_house")
-def add_fairshare_cap_house(m: pyo.ConcreteModel, params: dict) -> None:
-    """
-    fairshare_cap_house — Fairness cap by household
-    -----------------------------------------------
-    Limits deviations from proportional allocation (L1-based fairness).
-
-    Σ_i |x[i,h] - α·w[h]| ≤ β·w[h]·Σ_i S[i]
-
-    Params (dict):
-        beta: float — proportional share coefficient (0–1)
-    """
-    beta = _get_dial_value(m, params, "beta", default=0.7)
-
-    def rule(model, h):
-        return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) <= beta * model.fairshare_weight[h] * model.TotSupply
-
-    m.FairCapHouse = pyo.Constraint(m.H, rule=rule)
+# ═══════════════════════════════════════════════════════════════════
+# ALLOCATION EQUITY CONSTRAINTS (α, β, ρ)
+# ───────────────────────────────────────────────────────────────────
+# Enforce proportional fair-share allocations across items, households,
+# and their intersections. These caps limit inequality in the physical
+# distribution of food items.
+# ═══════════════════════════════════════════════════════════════════
 
 
 @register_constraint("fairshare_deviation_identity")
 def add_deviation_identity(m: pyo.ConcreteModel, params: dict) -> None:
-    """fairshare_deviation_identity — Linearize absolute deviation around proportional share."""
+    """
+    ALLOCATION EQUITY: Fair-share deviation identity
+    ────────────────────────────────────────────────
+    Linearises proportional allocation deviations by linking actual
+    allocation to the fair-share target through positive/negative slack
+    variables. Serves as the foundation for allocation equity caps.
+
+    Mathematical form:
+        x[i,h] - w[h]·Avail[i] = δ⁺[i,h] - δ⁻[i,h]     ∀ i ∈ I, h ∈ H
+
+    Dial parameter:
+        None (auxiliary identity enabling allocation equity caps).
+
+    Promotes:
+        Accurate measurement of proportional allocation deviations that
+        drive allocation equity constraints.
+    """
 
     def rule(model, i, h):
         fair_target = model.fairshare_weight[h] * model.Avail[i]
@@ -388,7 +361,23 @@ def add_deviation_identity(m: pyo.ConcreteModel, params: dict) -> None:
 
 @register_constraint("item_equity_aggregate_cap")
 def add_deviation_item_cap(m: pyo.ConcreteModel, params: dict) -> None:
-    """Aggregate per-item L1 deviation cap with dial alpha."""
+    """
+    ALLOCATION EQUITY: Item-level proportional fairness cap
+    ────────────────────────────────────────────────────────
+    Limits aggregate deviation from the fair-share target for each item
+    across all households, preventing item-specific concentration of the
+    food basket.
+
+    Mathematical form:
+        Σ_h (δ⁺[i,h] + δ⁻[i,h]) ≤ α_i · Avail[i]     ∀ i ∈ I
+
+    Dial parameter:
+        alpha_i: Maximum tolerated deviation as a fraction of item supply.
+                  Lower values enforce stricter item-level allocation equity.
+
+    Promotes:
+        Horizontal equity by distributing each item proportionally.
+    """
 
     def rule(model, i):
         alpha = _get_dial_value(model, params, "alpha", i)
@@ -399,7 +388,22 @@ def add_deviation_item_cap(m: pyo.ConcreteModel, params: dict) -> None:
 
 @register_constraint("household_equity_aggregate_cap")
 def add_deviation_household_cap(m: pyo.ConcreteModel, params: dict) -> None:
-    """Aggregate per-household L1 deviation cap with dial beta."""
+    """
+    ALLOCATION EQUITY: Household-level proportional fairness cap
+    ─────────────────────────────────────────────────────────────
+    Caps total deviation from fair-share for each household across all
+    items, ensuring allocations scale with household size and weights.
+
+    Mathematical form:
+        Σ_i (δ⁺[i,h] + δ⁻[i,h]) ≤ β_h · w[h] · TotSupply     ∀ h ∈ H
+
+    Dial parameter:
+        beta_h: Maximum tolerated deviation relative to the household fair-share
+                 weight. Lower values enforce stricter vertical allocation equity.
+
+    Promotes:
+        Vertical equity by keeping household allocations proportional to need.
+    """
 
     def rule(model, h):
         beta = _get_dial_value(model, params, "beta", h)
@@ -411,15 +415,170 @@ def add_deviation_household_cap(m: pyo.ConcreteModel, params: dict) -> None:
 
 @register_constraint("pairwise_equity_cap")
 def add_deviation_pair_cap(m: pyo.ConcreteModel, params: dict) -> None:
-    """Per (item, household) deviation cap with dial gamma."""
+    """
+    ALLOCATION EQUITY: Pairwise proportional fairness cap
+    ──────────────────────────────────────────────────────
+    Restricts deviation for each (item, household) pair relative to its
+    fair-share target, preventing extreme concentration or deprivation
+    at the most granular allocation level.
+
+    Mathematical form:
+        δ⁺[i,h] + δ⁻[i,h] ≤ ρ_{i,h} · w[h] · Avail[i]     ∀ i ∈ I, h ∈ H
+
+    Dial parameter:
+        rho_{i,h}: Maximum tolerated pairwise deviation fraction.
+                    Legacy alias ``gamma`` is accepted for backward compatibility.
+
+    Promotes:
+        Fine-grained proportional equity by bounding individual allocation gaps.
+    """
 
     def rule(model, i, h):
-        gamma = _get_dial_value(model, params, "gamma", (i, h))
+        try:
+            rho = _get_dial_value(model, params, "rho", (i, h), default=None)
+        except (KeyError, ValueError):
+            rho = None
+        if rho is None:
+            rho = _get_dial_value(model, params, "gamma", (i, h))
         fair_target = model.fairshare_weight[h] * model.Avail[i]
-        return model.dpos[i, h] + model.dneg[i, h] <= gamma * fair_target
+        return model.dpos[i, h] + model.dneg[i, h] <= rho * fair_target
 
     m.DeviationPairCap = pyo.Constraint(m.I, m.H, rule=rule)
 
+
+@register_constraint("fairshare_cap_house")
+def add_fairshare_cap_house(m: pyo.ConcreteModel, params: dict) -> None:
+    """
+    ALLOCATION EQUITY: Legacy household deviation cap
+    ──────────────────────────────────────────────────
+    Historical formulation that limits household-level deviation using the
+    same β dial as aggregate caps. Retained for compatibility with prior
+    catalogues while emphasising proportional allocation equity.
+
+    Mathematical form:
+        Σ_i |x[i,h] - fair_share[i,h]| ≤ β · w[h] · TotSupply     ∀ h ∈ H
+
+    Dial parameter:
+        beta: Household deviation tolerance shared with modern aggregate cap.
+
+    Promotes:
+        Vertical allocation equity in legacy catalogues.
+    """
+
+    beta = _get_dial_value(m, params, "beta", default=0.7)
+
+    def rule(model, h):
+        return sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I) <= beta * model.fairshare_weight[h] * model.TotSupply
+
+    m.FairCapHouse = pyo.Constraint(m.H, rule=rule)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# NUTRITIONAL ADEQUACY CONSTRAINTS (γ, κ, ω)
+# ───────────────────────────────────────────────────────────────────
+# Guarantee minimum nutritional outcomes relative to the global mean
+# utility. These floors prevent deprivation and promote sufficiency
+# across nutrients, households, and their intersections.
+# ═══════════════════════════════════════════════════════════════════
+
+
+@register_constraint("household_adequacy_floor")
+def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
+    """
+    NUTRITIONAL ADEQUACY: Household minimum utility threshold
+    ──────────────────────────────────────────────────────────
+    Ensures each household attains a minimum average nutritional utility
+    relative to the global mean, preventing household-level deprivation.
+
+    Mathematical form:
+        ȳ_h ≥ ω_h · ū_global - ε     ∀ h ∈ H
+
+    Dial parameter:
+        omega_h: Required fraction of the global mean utility for each household.
+                  Legacy alias ``rho_h`` is accepted for backward compatibility.
+
+    Promotes:
+        Vertical adequacy by guaranteeing sufficiency for every household.
+    """
+
+    slack = _slack_term(m, params)
+
+    def rule(model, h):
+        try:
+            omega = _get_dial_value(model, params, "omega", h, default=None)
+        except (KeyError, ValueError):
+            omega = None
+        if omega is None:
+            omega = _get_dial_value(model, params, "rho", h, default=0.0)
+        return model.household_mean_utility[h] - omega * model.global_mean_utility >= -slack
+
+    m.HouseholdFloor = pyo.Constraint(m.H, rule=rule)
+
+
+@register_constraint("nutrient_adequacy_floor")
+def add_nutrient_floor(m: pyo.ConcreteModel, params: dict) -> None:
+    """
+    NUTRITIONAL ADEQUACY: Nutrient minimum utility threshold
+    ─────────────────────────────────────────────────────────
+    Requires each nutrient, averaged across households, to achieve a
+    minimum utility relative to the global mean, maintaining balanced diets.
+
+    Mathematical form:
+        ȳ_n ≥ γ_n · ū_global - ε     ∀ n ∈ N
+
+    Dial parameter:
+        gamma_n: Minimum fraction of global mean utility per nutrient.
+                  Legacy alias ``kappa_n`` is accepted for backward compatibility.
+
+    Promotes:
+        Nutrient-level adequacy by avoiding systemic shortfalls in any nutrient.
+    """
+
+    slack = _slack_term(m, params)
+
+    def rule(model, n):
+        try:
+            gamma = _get_dial_value(model, params, "gamma", n, default=None)
+        except (KeyError, ValueError):
+            gamma = None
+        if gamma is None:
+            gamma = _get_dial_value(model, params, "kappa", n, default=0.0)
+        return model.nutrient_mean_utility[n] - gamma * model.global_mean_utility >= -slack
+
+    m.NutrientFloor = pyo.Constraint(m.N, rule=rule)
+
+
+@register_constraint("pairwise_adequacy_floor")
+def add_pair_floor(m: pyo.ConcreteModel, params: dict) -> None:
+    """
+    NUTRITIONAL ADEQUACY: Pairwise minimum utility threshold
+    ─────────────────────────────────────────────────────────
+    Enforces minimum utility for each nutrient–household pair, ensuring
+    no beneficiary lacks a critical nutrient even if global averages are met.
+
+    Mathematical form:
+        u[n,h] ≥ κ_{n,h} · ū_global - ε     ∀ n ∈ N, h ∈ H
+
+    Dial parameter:
+        kappa_{n,h}: Minimum acceptable utility fraction per nutrient–household.
+                      Legacy alias ``omega_{n,h}`` is accepted for backward compatibility.
+
+    Promotes:
+        Egalitarian adequacy by protecting the most granular nutrition outcomes.
+    """
+
+    slack = _slack_term(m, params)
+
+    def rule(model, n, h):
+        try:
+            kappa = _get_dial_value(model, params, "kappa", (n, h), default=None)
+        except (KeyError, ValueError):
+            kappa = None
+        if kappa is None:
+            kappa = _get_dial_value(model, params, "omega", (n, h), default=0.0)
+        return model.u[n, h] - kappa * model.global_mean_utility >= -slack
+
+    m.PairFloor = pyo.Constraint(m.N, m.H, rule=rule)
 
 # ---------------------------------------------------------------------
 # Utility: list registered constraints

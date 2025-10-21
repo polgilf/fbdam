@@ -77,7 +77,7 @@ class Household:
     """
     A demand recipient (e.g., a family, household, or beneficiary unit).
     - members: household size (>= 0); used to derive normalized fair-share
-    - fairshare_weight: proportional weight used in fairness constraints (>= 0)
+    - fairshare_weight: proportional weight used in allocation equity constraints (>= 0)
     - group: optional bucket label (e.g., region or vulnerability group)
     """
     household_id: HouseholdId

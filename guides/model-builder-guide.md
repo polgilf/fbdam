@@ -51,9 +51,53 @@ The builder creates, in this order:
 |:--|:--|:--|
 | 1 | **Sets** | I (items), N (nutrients), H (households) |
 | 2 | **Params** | S[i] stock, C[i,n] content, R[h,n] requirement, γ[h] weight |
-| 3 | **Vars** | x[i,h] allocation, u[n,h] utility [0,1], dpos/dneg fairness aids |
+| 3 | **Vars** | x[i,h] allocation, u[n,h] utility [0,1], dpos/dneg allocation equity aids |
 | 4 | **Expr.** | q[n,h] = Σ_i C[i,n]x[i,h], mean_utility[h], global_mean_utility |
 | 5 | **Plugins** | Applies registered constraints & objective |
+
+---
+
+## Equity Framework: Two Dimensions
+
+FBDAM enforces equity through two complementary mechanisms:
+
+### Allocation Equity (Proportional Fairness)
+**Constraint type**: L1 deviation caps  
+**Mathematical target**: \(x_{i,h} \approx w_h \times \text{Avail}_i\)  
+**Dials**: α (item), β (household), ρ (pairwise)
+
+Limits deviations from proportional allocation (fair-share). Lower dial values
+enforce stricter proportionality, ensuring households receive quantities aligned
+with their size.
+
+**Promotes**:
+- Horizontal equity (similar treatment of similars)
+- Vertical equity (proportional treatment based on household size)
+- Predictability (allocations match expectations based on household composition)
+
+### Nutritional Adequacy (Outcome Equity)
+**Constraint type**: Minimum utility floors  
+**Mathematical target**: \(u_{n,h} \geq \text{dial} \times \bar{u}_{\text{global}}\)  
+**Dials**: γ (nutrient), κ (pairwise), ω (household)
+
+Ensures minimum nutritional outcomes for all households and nutrients relative
+to the global mean utility. Higher dial values enforce stricter adequacy guarantees.
+
+**Promotes**:
+- Egalitarian equity (minimum standards for all)
+- Sufficiency (no extreme deprivation)
+- Health outcomes (basic nutrition needs met)
+
+### Interaction Between Dimensions
+
+These dimensions can conflict:
+- Strict allocation equity may prevent achieving adequacy for smaller households.
+- Strict adequacy may require violating proportional allocation for larger households.
+
+The model navigates this trade-off through:
+1. **Epsilon slack (λ parameter)** — allows soft violations with penalty.
+2. **Dial tuning** — policy-makers balance the two objectives.
+3. **Optimization** — the solver finds the best compromise given constraints.
 
 ---
 
@@ -85,7 +129,7 @@ write_report(results, output_dir="outputs/demo")
 - `R[h,n]` now replaces the former DRI table (requirement amounts).
   A small epsilon (1e-9) prevents division-by-zero issues.
 - Utility bounds: `u[n,h] ∈ [0,1]`.
-- Fairness constraints rely on `dpos`/`dneg` variables predeclared by the builder.
+- Allocation equity constraints rely on `dpos`/`dneg` variables predeclared by the builder.
 - Plugins (registered in `constraints.py` and `objectives.py`) can be extended freely.
 
 ### Purchase budget constraints

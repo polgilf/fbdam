@@ -1,3 +1,5 @@
+"""Visualise KPI outputs grouped by allocation equity and nutritional adequacy."""
+
 import argparse
 from pathlib import Path
 
@@ -86,12 +88,13 @@ def load_kpi_wide_table(csv_path: Path, catalog_path: Path) -> pd.DataFrame:
 
 
 def make_plots(df: pd.DataFrame, source_path: Path) -> None:
+    """Render quick-look charts highlighting both equity dimensions."""
     required_columns = {
-        "global_mean_deviation_from_fair_share",
+        "global_mean_deviation_from_fairshare",
         "global_mean_utility",
-        "min_mean_utility_per_nutrient",
-        "min_overall_utility",
-        "max_mean_deviation_from_fair_share_per_household",
+        "min_nutrient_mean_utility",
+        "min_pairwise_utility",
+        "max_household_mean_deviation",
     }
     missing = required_columns - set(df.columns)
     if missing:
@@ -104,21 +107,27 @@ def make_plots(df: pd.DataFrame, source_path: Path) -> None:
     # 1. Global trade-off
     sns.scatterplot(
         data=df,
-        x="global_mean_deviation_from_fair_share",
+        x="global_mean_deviation_from_fairshare",
         y="global_mean_utility",
         hue="scenario",
     )
-    plt.xlabel("Mean deviation from fair share (lower = better)")
-    plt.ylabel("Mean utility (higher = better)")
-    plt.title("Equity–Efficiency Trade-off Map")
+    plt.xlabel(
+        "Allocation equity: mean deviation from fair-share "
+        "(lower = stronger proportionality)"
+    )
+    plt.ylabel(
+        "Nutritional adequacy: global mean utility "
+        "(higher = stronger adequacy)"
+    )
+    plt.title("Allocation Equity vs. Nutritional Adequacy")
     plt.tight_layout()
     plt.show()
 
     # 2. Nutritional adequacy breakdown
     nutr_candidates = [
-        "min_mean_utility_per_nutrient",
+        "min_nutrient_mean_utility",
         "global_mean_utility",
-        "min_overall_utility",
+        "min_pairwise_utility",
     ]
     nutr_cols = [col for col in nutr_candidates if col in df.columns]
     if nutr_cols:
@@ -128,16 +137,16 @@ def make_plots(df: pd.DataFrame, source_path: Path) -> None:
         plt.tight_layout()
         plt.show()
 
-    # 3. Household fairness breakdown
-    if "max_mean_deviation_from_fair_share_per_household" in df.columns:
+    # 3. Allocation equity breakdown
+    if "max_household_mean_deviation" in df.columns:
         sns.barplot(
             data=df,
             x="scenario",
-            y="max_mean_deviation_from_fair_share_per_household",
+            y="max_household_mean_deviation",
             palette="viridis"
         )
-        plt.title("Household Fairness Deviation")
-        plt.ylabel("Deviation from fair share")
+        plt.title("Household Allocation Equity Deviation")
+        plt.ylabel("Mean deviation from fair-share")
         plt.xlabel("Scenario")
         plt.tight_layout()
         plt.show()
