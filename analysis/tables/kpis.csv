@@ -1,20 +1,20 @@
-dataset_id,ds-a,ds-a,ds-a,ds-a
-config_id,dials-efficiency,dials-balanced,dials-fairness,dials-hard-fairness
-kpi,,,,
-Items,4.0,4.0,4.0,4.0
-Households,3.0,3.0,3.0,3.0
-Nutrients,3.0,3.0,3.0,3.0
-Objective value,6.63665,6.5232,3.635,6.44069
-Total allocation,60.0,61.0,60.0,60.0
-Avg allocation per pair,20.0,20.33333,20.0,20.0
-Undistributed,0.0,0.0,1.0,0.0
-Total cost,10.0,9.9,9.9,9.1
-Total nutritional utility,6.63665,6.5232,3.635,6.48272
-Global mean utility,0.73741,0.7248,0.40389,0.7203
-Min mean utility per household,0.58485,0.67018,0.3635,0.65663
-Min mean utility per nutrient,0.32493,0.37252,0.3635,0.3558
-Min overall utility,0.087,0.3624,0.3635,0.3
-Global mean deviation from fair share,2.05556,1.07407,0.32407,0.72222
-Max mean deviation from fair share per household,3.08333,1.25,0.38889,1.08333
-Max mean deviation from fair share per nutrient,3.85185,2.07407,0.44444,1.11111
-Max overall deviation from fair share,5.77778,3.11111,0.66667,1.66667
+dataset_id,ds-a,ds-a,ds-a,ds-a,ds-a
+config_id,dials-efficiency,dials-balanced,dials-fairness,dials-adequacy,dials-fairness-adequacy
+kpi,,,,,
+Items,4.0,4.0,4.0,4.0,4.0
+Households,3.0,3.0,3.0,3.0,3.0
+Nutrients,3.0,3.0,3.0,3.0,3.0
+Objective value,6.63665,6.59443,6.11165,6.56618,6.11165
+Total allocation,60.0,60.0,57.0,59.0,57.0
+Avg allocation per pair,20.0,20.0,19.0,19.66667,19.0
+Undistributed,0.0,0.0,0.0,0.0,0.0
+Total cost,10.0,9.6,7.1,9.0,7.1
+Total nutritional utility,6.63665,6.59443,6.11165,6.56618,6.11165
+Global mean utility,0.73741,0.73271,0.67907,0.72958,0.67907
+Min mean utility per household,0.58485,0.6043,0.64462,0.56137,0.64462
+Min mean utility per nutrient,0.32493,0.36158,0.24957,0.32468,0.24957
+Min overall utility,0.087,0.20975,0.2252,0.08625,0.2252
+Global mean deviation from fair share,2.05556,1.55556,0.37037,2.12963,0.37037
+Max mean deviation from fair share per household,3.08333,2.33333,0.47222,3.19444,0.47222
+Max mean deviation from fair share per nutrient,3.85185,2.66667,0.44444,3.85185,0.44444
+Max overall deviation from fair share,5.77778,4.0,0.66667,5.77778,0.66667

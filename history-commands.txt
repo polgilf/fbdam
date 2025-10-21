@@ -19,15 +19,22 @@ pytest tests/test_model_backbone.py
 pytest tests/test_smoke.py
 
 # Analysis
-python analysis/kpi_table.py --datasets ds-a --configs dials-efficiency dials-balanced dials-fairness dials-hard-fairness --output "analysis/tables/kpis.csv"
+python analysis/kpi_table.py --datasets ds-a --configs dials-efficiency dials-balanced dials-fairness dials-adequacy dials-fairness-adequacy --output "analysis/tables/kpis.csv"
 
 # Plots
-python analysis/plot_from_solution_dir.py "runs/ds-a/dials-balanced" "analysis/plots/demo_allocated_food_ds-a_balanced.png"
-python analysis/plot_from_solution_dir.py "runs/ds-a/dials-efficiency" "analysis/plots/demo_allocated_food_ds-a_efficiency.png"
+# Total allocation of each household (barplot)
+python analysis/plot_allocation_from_solution_dir.py "runs/ds-a/dials-balanced" "analysis/plots/demo_allocated_food_ds-a_balanced.png"
+python analysis/plot_allocation_from_solution_dir.py "runs/ds-a/dials-efficiency" "analysis/plots/demo_allocated_food_ds-a_efficiency.png"
 python analysis/plot_from_solution_dir.py "runs/ds-a/dials-fairness" "analysis/plots/demo_allocated_food_ds-a_fairness.png"
 
-python analysis/plot_kpis.py "analysis/tables/kpis.csv"
-python analysis/plot_kpis.py
+# Allocation per person of each household (barplot)
+python analysis/plot_allocation_per_member_from_solution_dir.py "runs/ds-a/dials-balanced" "analysis/plots/demo_allocated_per_member_food_ds-a_balanced.png" --ymax 12
+python analysis/plot_allocation_per_member_from_solution_dir.py "runs/ds-a/dials-efficiency" "analysis/plots/demo_allocated_per_member_food_ds-a_efficiency.png" --ymax 12
+python analysis/plot_allocation_per_member_from_solution_dir.py "runs/ds-a/dials-fairness" "analysis/plots/demo_allocated_per_member_food_ds-a_fairness.png" --ymax 12
+
+
+python analysis/plot_allocation_kpis.py "analysis/tables/kpis.csv"
+python analysis/plot_allocation_kpis.py
 
 # Run
 # In bash 

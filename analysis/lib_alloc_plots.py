@@ -39,12 +39,21 @@ def aggregate_allocations_per_household(csv_path: Path, column_overrides: Option
     g = g.sort_values("household_id").reset_index(drop=True)
     return g
 
-def plot_allocated_food_bar(per_household_df: pd.DataFrame, output_png: Path) -> Path:
+def plot_allocated_food_bar(
+    per_household_df: pd.DataFrame,
+    output_png: Path,
+    *,
+    ylabel: str = "Total allocated quantity (sum of units)",
+    title: str = "Allocated Food per Household",
+    ymax: Optional[float] = None,
+) -> Path:
     plt.figure(figsize=(8,5))
     plt.bar(per_household_df["household_id"], per_household_df["quantity"])
     plt.xlabel("Household")
-    plt.ylabel("Total allocated quantity (sum of units)")
-    plt.title("Allocated Food per Household")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    if ymax is not None:
+        plt.ylim(top=ymax)
     for x, y in zip(per_household_df["household_id"], per_household_df["quantity"]):
         plt.text(x, y, f"{y:.1f}", ha="center", va="bottom")
     plt.tight_layout()
