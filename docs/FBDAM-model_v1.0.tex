@@ -1,0 +1,106 @@
+\documentclass[preprint,12pt]{elsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry,setspace,booktabs}
+\usepackage{hyperref}
+\geometry{margin=1in}
+\setstretch{1.15}
+
+\journal{Omega -- The International Journal of Management Science}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{The Food Basket Design and Allocation Model (FBDAM):\\
+A Configurable Multi-Objective Framework for Equitable and Nutritious Food Distribution}
+
+\author{Pol Gil}
+\address{Zero Hunger Lab, Tilburg University, The Netherlands\\
+\texttt{pol.gil@tilburguniversity.edu}}
+
+\begin{abstract}
+This paper presents the \emph{Food Basket Design and Allocation Model} (FBDAM), a configurable mixed-integer linear programming (MILP) framework for the design and distribution of food baskets under simultaneous efficiency, equity, and adequacy objectives. The model maximizes aggregate nutritional utility while enforcing proportional fairness and minimum adequacy standards through a family of constraint-based control parameters. It introduces six continuous dials $(\alpha, \beta, \rho, \gamma, \kappa, \omega)$ that modulate inequality tolerance and nutritional floor enforcement, as well as a penalized slack variable that enables a smooth transition between soft and hard feasibility regimes. The proposed formulation preserves linearity and interpretability, provides explicit policy levers for decision makers, and supports diagnostic analysis of fairness--efficiency trade-offs. This methodological contribution aims to provide a transparent, extendable foundation for operational research in equitable food distribution and humanitarian supply chain planning.
+\end{abstract}
+
+\begin{keyword}
+Food allocation \sep Equity \sep Adequacy \sep Linear programming \sep Optimization modelling \sep Fairness in operations
+\end{keyword}
+
+\end{frontmatter}
+
+\section{Introduction}
+Food assistance organizations and public welfare programs face the dual challenge of maximizing the nutritional impact of limited resources while maintaining equitable treatment among heterogeneous beneficiaries. Traditional allocation models often emphasize efficiency---for example, maximizing total nutritional value or minimizing cost---but they typically fail to account for distributive fairness or minimum adequacy requirements across demographic or nutritional dimensions. 
+
+The \emph{Food Basket Design and Allocation Model} (FBDAM) addresses this gap by embedding fairness and adequacy directly into the optimization structure. It provides a unified mathematical language to formalize the interplay between \emph{efficiency}, \emph{equity}, and \emph{adequacy}, three cornerstones of socially responsible resource allocation.
+
+\section{Mathematical Formulation}
+\label{sec:model}
+FBDAM is formulated as a Mixed-Integer Linear Program (MILP). The notation follows standard conventions.
+
+\subsection{Sets}
+\begin{align*}
+\mathcal{I} &: \text{set of items (food products)},\\
+\mathcal{N} &: \text{set of nutrients},\\
+\mathcal{H} &: \text{set of households (beneficiary units)}.
+\end{align*}
+
+\subsection{Parameters}
+\begin{align*}
+S_i & : \text{donated stock of item } i \in \mathcal{I},\\
+c_i & : \text{unit purchase cost of item } i,\\
+a_{i,n} & : \text{content of nutrient } n \text{ per unit of item } i,\\
+R_{h,n} & : \text{required quantity of nutrient } n \text{ for household } h,\\
+w_h & : \text{fair-share weight for household } h,\\
+B & : \text{available budget for purchases},\\
+\lambda & : \text{penalty coefficient on global slack},\\
+\alpha_i,\, \beta_h,\, \gamma_{i,h} & : \text{equity dials (item, household, pairwise)},\\
+\kappa_n,\, \rho_h, \, \omega_{n,h} & : \text{adequacy dials (nutrient, household, pairwise)}.
+\end{align*}
+
+All parameters are non-negative. The dials take values in $[0,1]$.
+
+\subsection{Decision Variables}
+\begin{align*}
+x_{i,h} &\ge 0 && \text{quantity of item $i$ allocated to household $h$},\\
+y_i &\ge 0 && \text{purchased quantity of item $i$},\\
+y_i^{\mathrm{active}} &\in \{0,1\} && \text{binary purchase activation},\\
+u_{n,h} &\in [0,1] && \text{normalized nutritional utility of nutrient $n$ for household $h$},\\
+\delta_{i,h}^{+},\delta_{i,h}^{-} &\ge 0 && \text{positive/negative deviation from proportional share},\\
+\varepsilon &\ge 0 && \text{global slack variable for constraint relaxation.}
+\end{align*}
+
+\subsection{Optimization Model}
+\begin{align}
+\max \quad & \sum_{n \in \mathcal{N}}\sum_{h \in \mathcal{H}} u_{n,h} - \lambda \varepsilon \tag{1}\\
+\text{s.t.}\quad 
+& u_{n,h} \le \frac{\sum_{i \in \mathcal{I}} a_{i,n} x_{i,h}}{R_{h,n}} && \forall n,h \tag{2a}\\
+& \sum_{h \in \mathcal{H}} x_{i,h} \le S_i + y_i && \forall i \tag{2b}\\
+& \sum_{i \in \mathcal{I}} c_i y_i \le B && \text{(budget)} \tag{2c}\\
+& y_i \le \frac{B}{c_i+\epsilon_c} y_i^{\mathrm{active}} && \forall i \tag{2d}\\
+& (S_i+y_i) - \sum_{h} x_{i,h} \le S_i(1-y_i^{\mathrm{active}}) && \forall i \tag{2e}\\
+& x_{i,h} - w_h(S_i+y_i) = \delta_{i,h}^{+}-\delta_{i,h}^{-} && \forall i,h \tag{3a}\\
+& \sum_{h} (\delta_{i,h}^{+}+\delta_{i,h}^{-}) \le \alpha_i (S_i+y_i) && \forall i \tag{3b}\\
+& \sum_{i} (\delta_{i,h}^{+}+\delta_{i,h}^{-}) \le \beta_h w_h\!\!\sum_{i}(S_i+y_i) && \forall h \tag{3c}\\
+& \delta_{i,h}^{+}+\delta_{i,h}^{-} \le \gamma_{i,h}w_h(S_i+y_i) && \forall i,h \tag{3d}\\
+& \frac{1}{|\mathcal{H}|}\sum_{h} u_{n,h} \ge \kappa_n \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall n \tag{4b}\\
+& \frac{1}{|\mathcal{N}|}\sum_{n} u_{n,h} \ge \rho_h \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall h \tag{4a}\\
+& u_{n,h} \ge \omega_{n,h} \frac{1}{|\mathcal{N}||\mathcal{H}|}\sum_{n,h} u_{n,h} - \varepsilon && \forall n,h \tag{4c}\\
+& x_{i,h},u_{n,h},y_i,\delta_{i,h}^{\pm},\varepsilon \ge 0,\; y_i^{\mathrm{active}}\!\in\!\{0,1\}. \notag
+\end{align}
+
+\paragraph{Model structure.}
+Equations (2) represent core mechanics linking nutritional utility to allocations and enforcing budgeted supply. Constraints (3) constitute the equity layer, limiting deviations from proportional fair-share allocations. Constraints (4) impose adequacy floors relative to the global mean utility, with optional relaxation controlled by $\varepsilon$.
+
+\bibliographystyle{elsarticle-harv}
+\begin{thebibliography}{99}
+
+\bibitem[Bertsimas et~al.(2011)]{Bertsimas2011Fairness}
+Bertsimas, D., Farias, V.~F., Trichakis, N. (2011).
+The price of fairness.
+\emph{Operations Research}, 59(1), 17--31.
+
+% Additional references to be completed after the computational study
+
+\end{thebibliography}
+
+\end{document}
