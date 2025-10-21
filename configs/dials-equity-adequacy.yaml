@@ -1,0 +1,42 @@
+version: v1
+name: Proportional & Adequate
+description: |
+  Policy emphasis: ALLOCATION EQUITY + NUTRITIONAL ADEQUACY
+
+  Tightens both proportional allocation caps and nutritional adequacy floors.
+  Useful for stress-testing scenarios where both dimensions are pushed close to
+  their theoretical limits.
+
+  ⚠️ This configuration is often INFEASIBLE with realistic data,
+  demonstrating that strict proportional allocation and strict
+  adequacy requirements can be fundamentally incompatible.
+  Use this to explore the limits of the model and understand
+  when epsilon slack (λ penalty) is necessary.
+  
+model:
+  description: |
+    Base model with allocation equity and nutritional adequacy constraints.
+    Dials are configured to be strict in both dimensions.
+  constraints:
+    - ref: nutrition_utility_mapping
+    - ref: item_supply_limit
+    - ref: purchase_budget_limit
+    - ref: fairshare_deviation_identity
+    - ref: item_equity_aggregate_cap
+    - ref: household_equity_aggregate_cap
+    - ref: pairwise_equity_cap
+    - ref: household_adequacy_floor
+    - ref: nutrient_adequacy_floor
+    - ref: pairwise_adequacy_floor
+  objectives:
+    - ref: sum_utility
+  dials:
+    # Allocation equity dials (strict)
+    alpha: 0.1
+    beta: 0.1
+    rho: 0.1
+
+    # Nutritional adequacy dials (strict)
+    gamma: 0.9
+    kappa: 0.9
+    omega: 0.9

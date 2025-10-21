@@ -1,0 +1,45 @@
+version: v1
+name: Hierarchical (Aggregate Priority)
+description: |
+  Hierarchical constraint priority: strict at aggregate levels,
+  relaxed at pairwise level.
+  
+  POLICY RATIONALE:
+  - Maintain overall proportional distribution across the population
+  - Maintain overall adequate nutrition across all households/nutrients
+  - Allow individual (item, household) and (nutrient, household) pairs
+    to deviate based on specific circumstances
+  
+  DEMONSTRATES:
+  - Not all dials within a dimension need equal values
+  - Aggregate equity/adequacy can be enforced without micromanaging
+    every individual allocation or outcome
+  - Hierarchical constraint relaxation reflects real-world priorities
+model:
+  description: |
+    Base model with allocation equity and nutritional adequacy constraints.
+    Dials are set to enforce strict aggregate-level constraints,
+    while allowing more flexibility at the pairwise level.
+  constraints:
+    - ref: nutrition_utility_mapping
+    - ref: item_supply_limit
+    - ref: purchase_budget_limit
+    - ref: fairshare_deviation_identity
+    - ref: item_equity_aggregate_cap
+    - ref: household_equity_aggregate_cap
+    - ref: pairwise_equity_cap
+    - ref: household_adequacy_floor
+    - ref: nutrient_adequacy_floor
+    - ref: pairwise_adequacy_floor
+  objectives:
+    - ref: sum_utility
+  dials:
+    # Allocation equity dials (strict/medium)
+    alpha: 0.4
+    beta: 0.2
+    rho: 0.6
+
+    # Nutritional adequacy dials (tight)
+    gamma: 0.5
+    kappa: 0.3
+    omega: 0.8

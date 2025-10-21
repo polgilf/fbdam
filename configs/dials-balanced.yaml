@@ -5,7 +5,9 @@ description: |
 
   Balances allocation equity (proportional distribution) with nutritional
   adequacy (minimum outcomes). Represents a middle-ground policy that considers
-  both fair distribution and adequate nutrition.
+  both fair distribution and adequate nutrition. 
+
+  Meaningful constraints while still flexible.
 model:
   description: |
     Base model with allocation equity and nutritional adequacy constraints.
@@ -24,12 +26,12 @@ model:
   objectives:
     - ref: sum_utility
   dials:
-    # Allocation equity dials (balanced)
-    alpha: 0.5
-    beta: 0.5
-    rho: 0.5
+    # Allocation equity dials (balanced) # 30% max deviation (more noticeable constraint)
+    alpha: 0.3 
+    beta: 0.3
+    rho: 0.3
 
-    # Nutritional adequacy dials (balanced)
-    gamma: 0.5
-    kappa: 0.5
-    omega: 0.5
+    # Nutritional adequacy dials (balanced) # 60% of mean (more meaningful floor)
+    gamma: 0.6
+    kappa: 0.6
+    omega: 0.6

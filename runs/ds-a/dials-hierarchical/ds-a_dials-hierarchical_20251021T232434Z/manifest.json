@@ -1,0 +1,64 @@
+{
+  "run": {
+    "id": "ds-a_dials-hierarchical_20251021T232434Z",
+    "started_at": "2025-10-21T23:24:35Z"
+  },
+  "solver": {
+    "name": "appsi_highs",
+    "status": "ok",
+    "termination": "TerminationCondition.optimal",
+    "elapsed_sec": 0.2364,
+    "objective_value": 6.311888721804512,
+    "gap": 0.006593,
+    "best_feasible_objective": 6.311888721804512,
+    "best_objective_bound": 6.3535004753077935,
+    "is_feasible": true
+  },
+  "artifacts": [
+    {
+      "path": "solver_report.json",
+      "sha256": "86546307275d9b6582317c86d391c1d2a4a7644f5c8b538620800a6c207defe3",
+      "kind": "metric"
+    },
+    {
+      "path": "model_stats.json",
+      "sha256": "701b16c3a4f96f8753bdfb6030d8e12b3f196b9a36d3f77b02ca7dfb365f869b",
+      "kind": "metric"
+    },
+    {
+      "path": "kpis.json",
+      "sha256": "09e398256af82358f8febb369f316411f3a533bd0248b30fbcded962e99bbb32",
+      "kind": "metric"
+    },
+    {
+      "path": "variables.csv",
+      "sha256": "60c7e0397b263510ed19f096f97f33c5b2220017651dd0816c8b7706bed335e5",
+      "kind": "table"
+    },
+    {
+      "path": "solution.csv",
+      "sha256": "a1dc263b64011c0d965b62f58bee55225165fd8e56cccca448ca51489e3d1d86",
+      "kind": "table"
+    },
+    {
+      "path": "report.md",
+      "sha256": "f31490800f63635f6d40e248397a5bc1cb39aa2944d5c1654a3d0c54779d1eeb",
+      "kind": "report"
+    },
+    {
+      "path": "config_snapshot.json",
+      "sha256": "ebf92538af278b00ff547415e8167248830701ae63e5dda4a1932eb55bf1fa30",
+      "kind": "config"
+    },
+    {
+      "path": "model.mps",
+      "sha256": "74603ae1bf7552ded6c34117fa3e99152b85b5b27c84b5d7284c936f057a361e",
+      "kind": "model"
+    },
+    {
+      "path": "solver.log",
+      "sha256": "c4aa820d9bb0617a8b7b43de17b3ded2e4b133cb68beec1714412fad8a132387",
+      "kind": "log"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+run_id: ds-a_dials-allocation-equity_20251021T232430Z
+dataset_id: ds-a
+config_id: dials-allocation-equity
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 5.953117794486215
+gap: 0.02305
+best_feasible_objective: 5.953117794486215
+best_objective_bound: 6.09033591116611
+elapsed_sec: 0.2019
+profile_id: time-limited

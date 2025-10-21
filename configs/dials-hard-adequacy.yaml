@@ -1,0 +1,45 @@
+version: v1
+name: Hard Allocation Equity
+description: |
+  Policy emphasis: STRICT ALLOCATION EQUITY
+
+  Strict nutritional adequacy requirements (100% of global mean)
+  with epsilon slack enabled. Allocation equity is moderate.
+  Demonstrates soft constraint relaxation with penalty.
+  
+model:
+  params:
+    lambda: 0.1
+  description: |
+    Base model with allocation equity and nutritional adequacy constraints.
+    Allocation equity caps are strict; adequacy floors use slack to remain
+    feasible under extreme proportionality requirements.
+  constraints:
+    - ref: nutrition_utility_mapping
+    - ref: item_supply_limit
+    - ref: purchase_budget_limit
+    - ref: fairshare_deviation_identity
+    - ref: item_equity_aggregate_cap
+    - ref: household_equity_aggregate_cap
+    - ref: pairwise_equity_cap
+    - ref: household_adequacy_floor
+      params:
+        use_slack: True
+    - ref: nutrient_adequacy_floor
+      params:
+        use_slack: True
+    - ref: pairwise_adequacy_floor
+      params:
+        use_slack: True
+  objectives:
+    - ref: sum_utility
+  dials:
+    # Allocation equity dials (strict)
+    alpha: 0.2
+    beta: 0.2
+    rho: 0.2
+
+    # Nutritional adequacy dials (strict, enforced with slack)
+    gamma: 1
+    kappa: 1
+    omega: 1
