@@ -172,7 +172,7 @@ A change is done when:
 ```markdown
 **Title:** Add fairness floor constraint
 **Context:** Distribution equity must exceed baseline.
-**Decision:** Introduce \(u_{n,h} \geq \omega_h \cdot \text{mean}(u_{n,h})\)
+**Decision:** Introduce \(u_{n,h} \geq \rho_h \cdot \text{mean}(u_{n,h})\)
 **Why:** Increases nutritional fairness consistency.
 **Implications:** Update constraint catalog + tests.
 **Links:** PR #42, prompt-log 2025-10-19

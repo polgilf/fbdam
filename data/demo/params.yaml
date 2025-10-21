@@ -15,11 +15,11 @@ dials:
     default: 9999.0
   beta:
     default: 9999.0
-  rho:
-    default: 9999.0
   gamma:
-    default: 0.0
+    default: 9999.0
   kappa:
+    default: 0.0
+  rho:
     default: 0.0
   omega:
     default: 0.0

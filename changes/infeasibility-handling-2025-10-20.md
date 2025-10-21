@@ -401,7 +401,7 @@ Create a new test scenario YAML file with impossible constraints:
 **Scenario characteristics:**
 
 * Set `alpha` and `beta` to 0.0 (perfect fairness impossible with unequal households)
-* Set `omega` and `gamma` to 1.0 (all households must equal global mean - contradictory)
+* Set `rho` and `kappa` to 1.0 (all households must equal global mean - contradictory)
 * Set budget very low (insufficient to buy necessary items)
 
 **Expected behavior:**
