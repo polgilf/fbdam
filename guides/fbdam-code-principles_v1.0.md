@@ -69,7 +69,7 @@ purpose: "Baseline allocation model with equity + nutrition dials"
 - `constraints_v1.1.yaml`: declarative list of constraint IDs with parameters and scopes.
 - `objectives_v1.0.yaml`: declarative selection of objective + weights.
 - `scenario-*.yaml`: paths to inputs, dial settings, solver options, seed, and output directory.
-- `dials-defaults.yaml`: default values for alpha_i, beta_h, gamma_n, omega_h, kappa_{n,h}.
+- `dials-defaults.yaml`: default values for alpha_i, beta_h, gamma_{i,h}, kappa_n, rho_h, omega_{n,h}.
 
 > **Remark:** Version only **stable** catalogs. Scenario files are process-facing (no `_v` suffix).
 

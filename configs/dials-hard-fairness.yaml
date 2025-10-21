@@ -28,7 +28,7 @@ model:
   dials:
     alpha: 0.2
     beta: 0.2
-    rho: 0.2
-    gamma: 1
+    gamma: 0.2
     kappa: 1
+    rho: 1
     omega: 1

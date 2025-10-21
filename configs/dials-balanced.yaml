@@ -20,7 +20,7 @@ model:
   dials:
     alpha: 0.5
     beta: 0.5
-    rho: 0.5
     gamma: 0.5
     kappa: 0.5
+    rho: 0.5
     omega: 0.5

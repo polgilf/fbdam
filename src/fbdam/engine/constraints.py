@@ -304,53 +304,53 @@ def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
     """
     household_adequacy_floor — Household minimum utility
     -------------------------------------------
-    Implements  \bar u_h - omega_h * \bar u_all >= -epsilon.
+    Implements  \bar u_h - rho_h * \bar u_all >= -epsilon.
 
     Params (dict):
-        omega: Optional scalar or mapping per household. Defaults to the
-               scenario dial if defined, otherwise 0.0.
+        rho: Optional scalar or mapping per household. Defaults to the
+              scenario dial if defined, otherwise 0.0.
         use_slack: bool | "auto" — whether to include epsilon on the RHS.
     """
 
     '''
     Mathematical form:
-        \bar u_h - omega_h * \bar u_all >= -epsilon     ∀ h ∈ H
+        \bar u_h - rho_h * \bar u_all >= -epsilon     ∀ h ∈ H
     '''
     slack = _slack_term(m, params)
 
     def rule(model, h):
-        omega = _get_dial_value(model, params, "omega", h, default=0.0)
-        return model.household_mean_utility[h] - omega * model.global_mean_utility >= -slack
+        rho = _get_dial_value(model, params, "rho", h, default=0.0)
+        return model.household_mean_utility[h] - rho * model.global_mean_utility >= -slack
 
     m.HouseholdFloor = pyo.Constraint(m.H, rule=rule)
 
 
 @register_constraint("nutrient_adequacy_floor")
 def add_nutrient_floor(m: pyo.ConcreteModel, params: dict) -> None:
-    """nutrient_adequacy_floor — Implements \bar u_n - gamma_n * \bar u_all >= -epsilon."""
+    """nutrient_adequacy_floor — Implements \bar u_n - kappa_n * \bar u_all >= -epsilon."""
 
     '''
     Mathematical form:
-        \bar u_n - gamma_n * \bar u_all >= -epsilon     ∀ n ∈ N
+        \bar u_n - kappa_n * \bar u_all >= -epsilon     ∀ n ∈ N
     '''
     slack = _slack_term(m, params)
 
     def rule(model, n):
-        gamma = _get_dial_value(model, params, "gamma", n, default=0.0)
-        return model.nutrient_mean_utility[n] - gamma * model.global_mean_utility >= -slack
+        kappa = _get_dial_value(model, params, "kappa", n, default=0.0)
+        return model.nutrient_mean_utility[n] - kappa * model.global_mean_utility >= -slack
 
     m.NutrientFloor = pyo.Constraint(m.N, rule=rule)
 
 
 @register_constraint("pairwise_adequacy_floor")
 def add_pair_floor(m: pyo.ConcreteModel, params: dict) -> None:
-    """pairwise_adequacy_floor — Implements u[n,h] - kappa_{n,h} * \bar u_all >= -epsilon."""
+    """pairwise_adequacy_floor — Implements u[n,h] - omega_{n,h} * \bar u_all >= -epsilon."""
 
     slack = _slack_term(m, params)
 
     def rule(model, n, h):
-        kappa = _get_dial_value(model, params, "kappa", (n, h), default=0.0)
-        return model.u[n, h] - kappa * model.global_mean_utility >= -slack
+        omega = _get_dial_value(model, params, "omega", (n, h), default=0.0)
+        return model.u[n, h] - omega * model.global_mean_utility >= -slack
 
     m.PairFloor = pyo.Constraint(m.N, m.H, rule=rule)
 
@@ -411,12 +411,12 @@ def add_deviation_household_cap(m: pyo.ConcreteModel, params: dict) -> None:
 
 @register_constraint("pairwise_equity_cap")
 def add_deviation_pair_cap(m: pyo.ConcreteModel, params: dict) -> None:
-    """Per (item, household) deviation cap with dial rho."""
+    """Per (item, household) deviation cap with dial gamma."""
 
     def rule(model, i, h):
-        rho = _get_dial_value(model, params, "rho", (i, h))
+        gamma = _get_dial_value(model, params, "gamma", (i, h))
         fair_target = model.fairshare_weight[h] * model.Avail[i]
-        return model.dpos[i, h] + model.dneg[i, h] <= rho * fair_target
+        return model.dpos[i, h] + model.dneg[i, h] <= gamma * fair_target
 
     m.DeviationPairCap = pyo.Constraint(m.I, m.H, rule=rule)
 

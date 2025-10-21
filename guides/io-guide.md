@@ -47,10 +47,10 @@ model:
   dials:
     alpha: 0.25
     beta: 0.15
-    gamma: 0.10
-    kappa: 0.05
-    rho: 0.20
-    omega: 0.30
+    gamma: 0.20
+    kappa: 0.10
+    rho: 0.30
+    omega: 0.05
   budget: 1500
   lambda: 0.8
   constraints:
