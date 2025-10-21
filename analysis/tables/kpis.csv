@@ -10,10 +10,10 @@ Avg allocation per pair,20.0,20.0,19.0,19.66667,19.0
 Undistributed,0.0,0.0,0.0,0.0,0.0
 Total cost,10.0,9.6,7.1,9.0,7.1
 Total nutritional utility,6.63665,6.59443,6.11165,6.56618,6.11165
-Global mean utility,0.73741,0.73271,0.67907,0.72958,0.67907
-Min mean utility per household,0.58485,0.6043,0.64462,0.56137,0.64462
-Min mean utility per nutrient,0.32493,0.36158,0.24957,0.32468,0.24957
-Min overall utility,0.087,0.20975,0.2252,0.08625,0.2252
+Global mean nutritional utility,0.73741,0.73271,0.67907,0.72958,0.67907
+Min mean nutritional utility per household,0.58485,0.6043,0.64462,0.56137,0.64462
+Min mean nutritional utility per nutrient,0.32493,0.36158,0.24957,0.32468,0.24957
+Min overall nutritional utility,0.087,0.20975,0.2252,0.08625,0.2252
 Global mean deviation from fair share,2.05556,1.55556,0.37037,2.12963,0.37037
 Max mean deviation from fair share per household,3.08333,2.33333,0.47222,3.19444,0.47222
 Max mean deviation from fair share per nutrient,3.85185,2.66667,0.44444,3.85185,0.44444

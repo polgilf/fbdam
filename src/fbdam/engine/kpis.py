@@ -67,7 +67,7 @@ def compute_kpis(
         "max_mean_deviation_from_fair_share_per_household": _safe_max(
             _safe_value(model.household_mean_deviation_from_fairshare[h]) for h in model.H
         ),
-        "max_mean_deviation_from_fair_share_per_nutrient": _safe_max(
+        "max_mean_deviation_from_fair_share_per_food_item": _safe_max(
             _safe_value(model.item_mean_deviation_from_fairshare[n]) for n in model.I
         ),
         "max_overall_deviation_from_fair_share": _safe_max(

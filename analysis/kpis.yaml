@@ -18,18 +18,18 @@ kpis:
   - id: utility.total_nutritional_utility
     label: Total nutritional utility
   - id: utility.global_mean_utility
-    label: Global mean utility
+    label: Global mean nutritional utility
   - id: utility.min_mean_utility_per_household
-    label: Min mean utility per household
+    label: Min mean nutritional utility per household
   - id: utility.min_mean_utility_per_nutrient
-    label: Min mean utility per nutrient
+    label: Min mean nutritional utility per nutrient
   - id: utility.min_overall_utility
-    label: Min overall utility
+    label: Min overall nutritional utility
   - id: fairness.global_mean_deviation_from_fair_share
     label: Global mean deviation from fair share
   - id: fairness.max_mean_deviation_from_fair_share_per_household
     label: Max mean deviation from fair share per household
-  - id: fairness.max_mean_deviation_from_fair_share_per_nutrient
-    label: Max mean deviation from fair share per nutrient
+  - id: fairness.max_mean_deviation_from_fair_share_per_item
+    label: Max mean deviation from fair share per food item
   - id: fairness.max_overall_deviation_from_fair_share
     label: Max overall deviation from fair share
