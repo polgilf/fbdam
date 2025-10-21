@@ -11,6 +11,6 @@ solver:
   name: appsi_highs
   options:
     time_limit: 60
-    mip_rel_gap: 0.001
+    mip_rel_gap: 0.0001
     log_to_console: false
     log_file: solver.log
