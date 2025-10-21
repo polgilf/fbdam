@@ -1,0 +1,12 @@
+run_id: ds-a_dials-hard-fairness_20251021T115617Z
+dataset_id: ds-a
+config_id: dials-hard-fairness
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 6.327255692007798
+gap: 0.027576
+best_feasible_objective: 6.327255692007798
+best_objective_bound: 6.501736950166806
+elapsed_sec: 0.1267
+profile_id: time-limited

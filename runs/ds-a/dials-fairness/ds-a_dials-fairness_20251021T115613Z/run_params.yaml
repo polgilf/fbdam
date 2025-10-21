@@ -1,0 +1,19 @@
+run_id: ds-a_dials-fairness_20251021T115613Z
+scenario: C:\Users\Pol\git\fbdam\scenarios\ds-a_dials-fairness.yaml
+dataset:
+  id: ds-a
+  path: C:\Users\Pol\git\fbdam\data\ds-a
+config:
+  id: dials-fairness
+  path: C:\Users\Pol\git\fbdam\configs\dials-fairness.yaml
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 5
+    mip_rel_gap: 0.05
+    log_to_console: false
+    log_file: C:\Users\Pol\git\fbdam\runs\ds-a\dials-fairness\ds-a_dials-fairness_20251021T115613Z\solver.log
+profile:
+  id: time-limited
+  path: C:\Users\Pol\git\fbdam\profiles\time-limited.yaml
+  description: Short time limit for quick feedback runs.

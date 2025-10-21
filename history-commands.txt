@@ -31,6 +31,7 @@ python analysis/plot_from_solution_dir.py "runs/ds-a/dials-fairness" "analysis/p
 python analysis/plot_allocation_per_member_from_solution_dir.py "runs/ds-a/dials-balanced" "analysis/plots/demo_allocated_per_member_food_ds-a_balanced.png" --ymax 12
 python analysis/plot_allocation_per_member_from_solution_dir.py "runs/ds-a/dials-efficiency" "analysis/plots/demo_allocated_per_member_food_ds-a_efficiency.png" --ymax 12
 python analysis/plot_allocation_per_member_from_solution_dir.py "runs/ds-a/dials-fairness" "analysis/plots/demo_allocated_per_member_food_ds-a_fairness.png" --ymax 12
+python analysis/plot_allocation_per_member_from_solution_dir.py "runs/ds-a/dials-adequacy" "analysis/plots/demo_allocated_per_member_food_ds-a_adequacy.png" --ymax 12
 
 
 python analysis/plot_allocation_kpis.py "analysis/tables/kpis.csv"

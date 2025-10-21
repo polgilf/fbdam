@@ -211,7 +211,12 @@ def add_u_link(m: pyo.ConcreteModel, params: dict) -> None:
 
 @register_constraint("item_supply_limit")
 def add_stock_balance(m: pyo.ConcreteModel, params: dict) -> None:
-    """Ensure allocations of each item do not exceed available supply."""
+    """
+    Ensure allocations of each item do not exceed available supply.
+    
+    Mathematical form:
+        Σ_h x[i,h] ≤ Avail[i]     ∀ i ∈ I
+    """
 
     def rule(model, i):
         return sum(model.x[i, h] for h in model.H) <= model.Avail[i]
@@ -244,14 +249,24 @@ def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
 
     budget_value = float(budget)
 
+    # 1. BUDGET LIMIT
+    """
+    Mathematical form:
+        Σ_i cost[i] * y[i] ≤ budget
+    """
     def _budget_rule(model):
         return sum(model.cost[i] * model.y[i] for i in model.I) <= budget_value
-
+    
     m.PurchaseBudget = pyo.Constraint(rule=_budget_rule)
 
+    # 2. PURCHASE ACTIVATION
+    """
+    Mathematical form:
+        y[i] ≤ M[i] * y_active[i]     ∀ i ∈ I
+    where M[i] = budget / cost[i] (with small epsilon to avoid div-by-zero)
+    """
     # Small epsilon used to avoid division-by-zero when computing the activation big-M.
     EPS_COST = 1e-9
-
     def _max_purchase_for_item(model, item_id: str) -> float:
         unit_cost = float(model.cost[item_id])
         if budget_value <= 0:
@@ -265,10 +280,17 @@ def add_purchase_budget(m: pyo.ConcreteModel, params: dict) -> None:
 
     m.PurchaseActivation = pyo.Constraint(m.I, rule=_purchase_activation_rule)
 
-    # 3. NO WASTE when purchasing
+    # 3. NO WASTE WHEN PURCHASING
     # If purchases are activated (y_active = 1), force full allocation of
     # Avail[i] = S[i] + y[i]. If no purchases (y_active = 0), allow up to
     # S[i] units of donated stock to remain unallocated.
+    """
+    Mathematical form:
+        Avail[i] - Σ_h x[i,h] ≤ S[i] * (1 - y_active[i])     ∀ i ∈ I
+
+    where Avail[i] = S[i] + y[i]
+    """
+
     def _no_waste_rule(model, item_id: str):
         unallocated = model.Avail[item_id] - sum(model.x[item_id, h] for h in model.H)
         max_waste_without_purchase = model.S[item_id]
@@ -289,6 +311,11 @@ def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
                scenario dial if defined, otherwise 0.0.
         use_slack: bool | "auto" — whether to include epsilon on the RHS.
     """
+
+    '''
+    Mathematical form:
+        \bar u_h - omega_h * \bar u_all >= -epsilon     ∀ h ∈ H
+    '''
     slack = _slack_term(m, params)
 
     def rule(model, h):
@@ -302,6 +329,10 @@ def add_household_floor(m: pyo.ConcreteModel, params: dict) -> None:
 def add_nutrient_floor(m: pyo.ConcreteModel, params: dict) -> None:
     """nutrient_adequacy_floor — Implements \bar u_n - gamma_n * \bar u_all >= -epsilon."""
 
+    '''
+    Mathematical form:
+        \bar u_n - gamma_n * \bar u_all >= -epsilon     ∀ n ∈ N
+    '''
     slack = _slack_term(m, params)
 
     def rule(model, n):

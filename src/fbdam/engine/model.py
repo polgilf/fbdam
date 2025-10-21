@@ -416,8 +416,8 @@ def _build_expressions(m: pyo.ConcreteModel) -> None:
     def _mean_deviation_household(model, h):
         return (1.0 / model.cardI) * sum(model.dpos[i, h] + model.dneg[i, h] for i in model.I)
     m.household_mean_deviation_from_fairshare = pyo.Expression(m.H, rule=_mean_deviation_household)
-
-
+    
+    
     # Item mean deviation from fair share: mean over households
     def _mean_deviation_item(model, i):
         return (1.0 / model.cardH) * sum(model.dpos[i, h] + model.dneg[i, h] for h in model.H)
