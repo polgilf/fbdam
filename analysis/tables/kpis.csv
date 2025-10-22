@@ -1,0 +1,29 @@
+dataset_id,ds-a,ds-a,ds-a,ds-a,ds-a,ds-a
+config_id,dials-adequacy,dials-allocation-equity,dials-balanced,dials-efficiency,dials-equity-adequacy,dials-hierarchical
+kpi,,,,,,
+Items,4.0,4.0,4.0,4.0,4.0,4.0
+Households,3.0,3.0,3.0,3.0,3.0,3.0
+Nutrients,3.0,3.0,3.0,3.0,3.0,3.0
+Objective value,3.66,5.95312,5.484,6.71293,1.54,6.31189
+Total allocation,61.0,58.0,61.0,61.0,55.0,61.0
+Avg allocation per pair,20.33333,19.33333,20.33333,20.33333,18.33333,20.33333
+Undistributed,-0.0,0.0,0.0,0.0,2.0,0.0
+Total cost,9.9,9.5,9.9,10.0,8.3,9.9
+Total nutritional utility,3.66,5.95312,5.484,6.71293,1.54,6.31189
+Global mean nutritional utility,0.40667,0.66146,0.60933,0.74588,0.17111,0.70132
+Min mean nutritional utility per household,0.37067,0.62213,0.42709,0.61422,0.154,0.66888
+Min mean nutritional utility per nutrient,0.366,0.18867,0.37145,0.40655,0.154,0.3568
+Min overall nutritional utility,0.366,0.154,0.3656,0.23825,0.154,0.274
+Global mean deviation (abs),0.88889,0.2037,0.5963,1.75926,0.16667,0.74074
+Max household mean deviation (abs),1.33333,0.25,0.80556,2.63889,0.25,0.97222
+Max item mean deviation (abs),1.25926,0.2963,0.7037,2.74074,0.33333,1.33333
+Worst-case deviation (abs),1.88889,0.44444,1.33333,4.11111,0.66667,2.0
+Max household deviation (rel),0.34426,0.06897,0.20656,0.57377,0.05263,0.19672
+Max item deviation (rel),0.06193,0.01533,0.03461,0.13479,0.01754,0.06557
+Worst-case deviation (rel),0.55,0.1,0.3,0.875,0.1,0.5
+Min household mean utility (adequacy),0.37067,0.62213,0.42709,0.61422,0.154,0.66888
+Min nutrient mean utility (adequacy),0.366,0.18867,0.37145,0.40655,0.154,0.3568
+Min nutrient–household utility (adequacy),0.366,0.154,0.3656,0.23825,0.154,0.274
+Household adequacy gap (rel),0.08852,0.05946,0.29908,0.17651,0.1,0.04626
+Nutrient adequacy gap (rel),0.1,0.71477,0.3904,0.45494,0.1,0.49125
+Pairwise adequacy gap (rel),0.1,0.76718,0.4,0.68058,0.1,0.60931

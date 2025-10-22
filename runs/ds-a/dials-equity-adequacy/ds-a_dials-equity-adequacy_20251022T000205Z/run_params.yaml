@@ -1,0 +1,19 @@
+run_id: ds-a_dials-equity-adequacy_20251022T000205Z
+scenario: C:\Users\Pol\git\fbdam\scenarios\ds-a_dials-equity-adequacy.yaml
+dataset:
+  id: ds-a
+  path: C:\Users\Pol\git\fbdam\data\ds-a
+config:
+  id: dials-equity-adequacy
+  path: C:\Users\Pol\git\fbdam\configs\dials-equity-adequacy.yaml
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 10
+    mip_rel_gap: 0.001
+    log_to_console: false
+    log_file: C:\Users\Pol\git\fbdam\runs\ds-a\dials-equity-adequacy\ds-a_dials-equity-adequacy_20251022T000205Z\solver.log
+profile:
+  id: time-limited
+  path: C:\Users\Pol\git\fbdam\profiles\time-limited.yaml
+  description: Short time limit for quick feedback runs.

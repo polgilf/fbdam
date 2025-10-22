@@ -1,0 +1,7 @@
+{
+  "objective_value": 1.54,
+  "gap": 1e-06,
+  "elapsed_sec": 0.1235,
+  "is_feasible": true,
+  "status": "ok"
+}

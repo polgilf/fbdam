@@ -1,0 +1,64 @@
+{
+  "run": {
+    "id": "ds-a_dials-allocation-equity_20251022T000203Z",
+    "started_at": "2025-10-22T00:02:03Z"
+  },
+  "solver": {
+    "name": "appsi_highs",
+    "status": "ok",
+    "termination": "TerminationCondition.optimal",
+    "elapsed_sec": 0.1441,
+    "objective_value": 5.953117794486216,
+    "gap": 0.0,
+    "best_feasible_objective": 5.953117794486216,
+    "best_objective_bound": 5.953117794486216,
+    "is_feasible": true
+  },
+  "artifacts": [
+    {
+      "path": "solver_report.json",
+      "sha256": "42ad22724905b5a63e8df56e4f8a61a626d9bef91b56fc56716808dc5839983f",
+      "kind": "metric"
+    },
+    {
+      "path": "model_stats.json",
+      "sha256": "701b16c3a4f96f8753bdfb6030d8e12b3f196b9a36d3f77b02ca7dfb365f869b",
+      "kind": "metric"
+    },
+    {
+      "path": "kpis.json",
+      "sha256": "277952bb9cd07a8e9913f2a8e55aee919a7155a060b04bc0720ecd59b9cc71b0",
+      "kind": "metric"
+    },
+    {
+      "path": "variables.csv",
+      "sha256": "5471d6385e67273d775aeb475c79fa507bfeeb2fe9e8f1ba15a7b4d797610e5e",
+      "kind": "table"
+    },
+    {
+      "path": "solution.csv",
+      "sha256": "8bb7b9023aa1e8c927a317c3ff8f93f8b15b670d03c3e46c145cf46b2aa45a55",
+      "kind": "table"
+    },
+    {
+      "path": "report.md",
+      "sha256": "f2ac3b328df080eec0544849ea0bac50e7988d6920326a1ee0ca8de06d90b042",
+      "kind": "report"
+    },
+    {
+      "path": "config_snapshot.json",
+      "sha256": "82179e324739102a107790e1c84da63def8e8017f25758fdbe449463daa71d4f",
+      "kind": "config"
+    },
+    {
+      "path": "model.mps",
+      "sha256": "32dcadc695230aa115c8a145697bced89d0431e2aa9460f25459b97a869a92b0",
+      "kind": "model"
+    },
+    {
+      "path": "solver.log",
+      "sha256": "944b76ab4aa263a3f8938bc5c5fdba47f4af5ca65e6a2c58218aae713187bc8f",
+      "kind": "log"
+    }
+  ]
+}

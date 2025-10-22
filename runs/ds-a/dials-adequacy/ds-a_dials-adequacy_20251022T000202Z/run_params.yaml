@@ -1,0 +1,19 @@
+run_id: ds-a_dials-adequacy_20251022T000202Z
+scenario: C:\Users\Pol\git\fbdam\scenarios\ds-a_dials-adequacy.yaml
+dataset:
+  id: ds-a
+  path: C:\Users\Pol\git\fbdam\data\ds-a
+config:
+  id: dials-adequacy
+  path: C:\Users\Pol\git\fbdam\configs\dials-adequacy.yaml
+solver:
+  name: appsi_highs
+  options:
+    time_limit: 10
+    mip_rel_gap: 0.001
+    log_to_console: false
+    log_file: C:\Users\Pol\git\fbdam\runs\ds-a\dials-adequacy\ds-a_dials-adequacy_20251022T000202Z\solver.log
+profile:
+  id: time-limited
+  path: C:\Users\Pol\git\fbdam\profiles\time-limited.yaml
+  description: Short time limit for quick feedback runs.

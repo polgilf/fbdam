@@ -1,0 +1,12 @@
+run_id: ds-a_dials-balanced_20251022T000204Z
+dataset_id: ds-a
+config_id: dials-balanced
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 5.484
+gap: 0.000252
+best_feasible_objective: 5.484
+best_objective_bound: 5.485384615384616
+elapsed_sec: 0.1503
+profile_id: time-limited

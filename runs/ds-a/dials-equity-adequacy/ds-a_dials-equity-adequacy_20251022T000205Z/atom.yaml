@@ -1,0 +1,12 @@
+run_id: ds-a_dials-equity-adequacy_20251022T000205Z
+dataset_id: ds-a
+config_id: dials-equity-adequacy
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 1.54
+gap: 1.0e-06
+best_feasible_objective: 1.54
+best_objective_bound: 1.5400012999999997
+elapsed_sec: 0.1235
+profile_id: time-limited

@@ -1,0 +1,12 @@
+run_id: ds-a_dials-efficiency_20251022T000200Z
+dataset_id: ds-a
+config_id: dials-efficiency
+status: ok
+termination: TerminationCondition.optimal
+is_feasible: true
+objective_value: 6.712928195488722
+gap: 0.000858
+best_feasible_objective: 6.712928195488722
+best_objective_bound: 6.7186861872555275
+elapsed_sec: 0.1616
+profile_id: time-limited
