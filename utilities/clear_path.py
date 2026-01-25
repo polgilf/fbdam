@@ -2,7 +2,15 @@
 
 Example usage::
 
-    python utilities/clear_path.py output/demo
+    python utilities/clear_path.py outputs/demo
+    python utilities/clear_path.py outputs/demo --create-dir
+
+Programmatic use::
+
+    from pathlib import Path
+    from utilities.clear_path import clear_path
+
+    clear_path(Path("outputs/demo"), create_dir=True)
 
 The script removes all files and sub-directories located at the provided
 ``path`` while keeping the directory itself (if it is a directory).
@@ -21,7 +29,7 @@ def _iter_children(path: Path) -> Iterable[Path]:
     return sorted(path.iterdir(), key=lambda child: child.name)
 
 
-def clear_path(path: Path) -> None:
+def clear_path(path: Path, *, create_dir: bool = False) -> None:
     """Delete the target path or, if it is a directory, all of its contents.
 
     Parameters
@@ -30,15 +38,19 @@ def clear_path(path: Path) -> None:
         The path to delete. If *path* points to a directory, the directory is
         preserved but all of its contents are removed. If *path* points to a
         file or a symbolic link it is removed directly.
-
-    How to use this function:
-    >>> from pathlib import Path
-    >>> from utilities.clear_path import clear_path
-    >>> clear_path(Path("output/demo"))
+    create_dir:
+        When *True*, create the directory (and any parents) if it does not
+        already exist. This is useful in build scripts where a clean output
+        directory should always be present after calling :func:`clear_path`.
     """
 
     if not path.exists():
-        print(f"Path '{path}' does not exist. Nothing to delete.")
+        if not create_dir:
+            print(f"Path '{path}' does not exist. Nothing to delete.")
+            return
+
+        path.mkdir(parents=True, exist_ok=True)
+        print(f"Created directory: {path}")
         return
 
     if path.is_file() or path.is_symlink():
@@ -80,10 +92,18 @@ def main() -> None:
             "file path to delete a specific file."
         ),
     )
+    parser.add_argument(
+        "--create-dir",
+        action="store_true",
+        help=(
+            "If the target directory does not exist, create it (including "
+            "any parents) instead of treating the call as a no-op."
+        ),
+    )
 
     args = parser.parse_args()
     try:
-        clear_path(args.path)
+        clear_path(args.path, create_dir=args.create_dir)
     except Exception as exc:  # pragma: no cover - CLI guard
         parser.error(str(exc))
 
